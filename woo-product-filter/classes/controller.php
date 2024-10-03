@@ -147,7 +147,7 @@ abstract class ControllerWpf {
 		$page = (int) ReqWpf::getVar('page');
 		$rowsLimit = (int) ReqWpf::getVar('rows');
 		$orderBy = ReqWpf::getVar('sidx');
-		$sortOrder = ReqWpf::getVar('sord');
+		$sortOrder = ReqWpf::getVar('sord') == 'asc' ? 'asc' : 'desc';
 
 		// Our custom search
 		$search = ReqWpf::getVar('search');
@@ -195,7 +195,11 @@ abstract class ControllerWpf {
 		if ($limitStart < 0) {
 			$limitStart = 0;
 		}
-		
+		$tbl = FrameWpf::_()->getTable( $model->getTbl() );
+		if (is_null($tbl) || !$tbl->haveField($orderBy)) {
+			$orderBy = 'id';
+		}
+
 		$data = $model
 			->setLimit($limitStart . ', ' . $rowsLimit)
 			->setOrderBy( $this->_prepareSortOrder($orderBy) )

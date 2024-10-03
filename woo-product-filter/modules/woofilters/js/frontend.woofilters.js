@@ -1324,7 +1324,12 @@
 
 			$queryVars = JSON.stringify($queryVars);
 			$shortcodeAttr = JSON.stringify($shortcodeAttr);
-			
+
+			if (clearAll) {
+				var newUrl = getCurrentUrlPartsWpf();
+				if (newUrl.search.length && newUrl.search.indexOf('wpf_')) clearAll = false;
+			}
+
 			if ($filterSettings['count_product_shop'] > 0 && !clearAll) {
 				_thisObj.QStringWork('wpf_count', $filterSettings['count_product_shop'], noWooPage, $filterWrapper, 'change');
 			}
