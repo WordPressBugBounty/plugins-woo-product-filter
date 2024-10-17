@@ -353,6 +353,11 @@ class WoofiltersWpf extends ModuleWpf {
 							}
 						}
 					}
+					if (!$found) {
+						if (!empty($query->query_vars['store']) && $query->is_main_query() && empty($query->query_vars['wpf_query']) && $this->isVendor()) {
+							$found = true;
+						}
+					}
 
 					if ( $found ) {
 						if ( '' !== $this->mainWCQueryFiltered ) {
@@ -816,7 +821,12 @@ class WoofiltersWpf extends ModuleWpf {
 			}
 		}
 		if ( ! empty( $data['vendors'] ) ) {
-			$userObj = get_user_by( 'slug', ReqWpf::getVar( 'vendors' ) );
+			$vendor = ReqWpf::getVar( 'vendors' );
+			if (empty($vendor)) {
+				$vendor = $data['vendors'];
+			} 
+			//$userObj = get_user_by( 'slug', ReqWpf::getVar( 'vendors' ) );
+			$userObj = get_user_by( 'slug', $vendor );
 			if ( isset( $userObj->ID ) ) {
 				$fields['author'] = $userObj->ID;
 			}
@@ -1123,6 +1133,17 @@ class WoofiltersWpf extends ModuleWpf {
 			$wp_query->set( 'product_cat', $this->originalWCQuery->query['product_cat'] );
 		}
 	}
+	public function getVendor() {
+		if ( class_exists('WC_Vendors') ) {
+			$vendor_shop = urldecode( get_query_var( 'vendor_shop' ) );
+			return WCV_Vendors::get_vendor_id( $vendor_shop );
+		}
+
+		if ( is_plugin_active( 'dokan-lite/dokan.php' ) ) {
+			$custom_store_url = dokan_get_option( 'custom_store_url', 'dokan_general', 'store' );
+			return get_query_var( $custom_store_url );
+		}
+	}
 
 	public function loadProductsFilter( $q ) {
 		$this->addPreselectedParams();
@@ -1336,7 +1357,7 @@ class WoofiltersWpf extends ModuleWpf {
 			$args['meta_query'] = array();
 		}
 
-		if ( count( $params ) > 0 ) {
+		if ( count( $params ) > 0 || !empty($this->preselects) ) {
 			$taxQuery     = $this->addCustomTaxQuery( $args['tax_query'], $params, $mode );
 			$params       = array_merge( $this->preselects, $params );
 			$this->fields = $this->addCustomFieldsQuery( $params, $mode );
@@ -1569,6 +1590,7 @@ class WoofiltersWpf extends ModuleWpf {
 			if ( ! isset( $preselects['pr_onsale'] ) && isset( $attributes['on_sale'] ) && 'true' === $attributes['on_sale'] ) {
 				$preselects['pr_onsale'] = 1;
 			}
+			
 			$fields    = $this->addCustomFieldsQuery( $preselects, $mode );
 			$metaQuery = $this->addCustomMetaQuery( $metaQuery, $preselects, $mode );
 			$taxQuery  = $this->addCustomTaxQuery( $taxQuery, $preselects, $mode );
@@ -3393,6 +3415,15 @@ class WoofiltersWpf extends ModuleWpf {
 					if ( isset ( $tax['wpf_group'] ) && $tax['wpf_group'] === $filter['name'] && isset( $tax[0]['terms'] ) ) {
 						$tax[0]['terms'] = $settings['f_mlist[]'];
 					}
+				}
+			}
+		}
+		if ($this->isVendor() && empty($args['author'])) {
+			$vendor = $this->getVendor();
+			if (!empty($vendor)) {
+				$userObj = get_user_by( 'slug', $vendor );
+				if ( isset( $userObj->ID ) ) {
+					$args['author'] = $userObj->ID;
 				}
 			}
 		}

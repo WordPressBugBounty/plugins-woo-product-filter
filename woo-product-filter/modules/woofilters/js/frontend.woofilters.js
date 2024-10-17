@@ -36,7 +36,7 @@
 		_thisObj.copySelectsForSafari();
 
 		jQuery('.wpfMainWrapper').each(function() {
-			_thisObj.markCheckboxSelected(jQuery(this));
+			_thisObj.markCheckboxSelected(jQuery(this), true);
 		});
 
 		if (_thisObj.isAdminPreview) {
@@ -3224,7 +3224,7 @@
 		return (selector.search(/\.|#/) === -1) ? '.' + selector.replace(/(\s+)(\w+)/g, ' .$2')	: selector ;
 	});
 
-	WpfFrontendPage.prototype.markCheckboxSelected = (function ($filter) {
+	WpfFrontendPage.prototype.markCheckboxSelected = (function ($filter, first) {
 		if ($filter.length) {
 			var settings = this.getFilterMainSettings($filter.closest('.wpfMainWrapper'));
 			if(settings) {
@@ -3241,6 +3241,25 @@
 						wpfAttrLabel.css('font-weight', 'bold');
 					});
 				}
+			}
+			if (first) {
+				//need to delete automatic checked inputs by goback in browser Chrome/FF
+				setTimeout(function () {
+					$filter.find('input').each(function() {
+						var input = this;
+						if (input.type == "checkbox") {
+							if (input.defaultChecked == true) {
+								if (input.checked != true) input.checked = true;
+							} else {
+								if (input.checked == true) {
+									input.checked = false;
+									jQuery(input).closest('.wpfLiLabel').find('.wpfDisplay').removeClass('selected').css('font-weight', '');
+								}
+							}
+							
+						}
+					});
+				}, 100);
 			}
 		}
 	});
