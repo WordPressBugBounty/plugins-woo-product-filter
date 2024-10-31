@@ -505,6 +505,17 @@
 									
 								}
 							}
+						} else {
+							//Elementor Loop Load More
+							if ((jQuery('.e-load-more-anchor').length == 1) && jQuery('.e-load-more-spinner').length && url.indexOf('?') == -1) {
+								var $elementorLoadMoreAnchor = jQuery('.e-load-more-anchor'),
+									s = window.location.search;
+								if (s.length) {
+									var nextPage = $elementorLoadMoreAnchor.attr('data-next-page');
+									if (nextPage == url) args[0]+= s;
+								}		
+		
+							}
 						}
 					}
 					const result = fetch.apply(that, args);
@@ -3327,6 +3338,26 @@
 			jQuery('.jetpack-lazy-image').each(function () {
 				jQuery(this).removeAttr('srcset');
 			});
+		});
+	}
+	if (jQuery('.jetpack-lazy-image').length > 0) {
+		document.addEventListener('wpfAjaxSuccess', function (event) {
+			jQuery('.jetpack-lazy-image').each(function () {
+				jQuery(this).removeAttr('srcset');
+			});
+		});
+	}
+	
+	// added for ElementorPro Loop Load More
+	if (jQuery('div.elementor-widget[data-widget_type="loop-grid.product"]').length > 0) {
+		document.addEventListener('wpfAjaxSuccess', function (event) {
+			if (window.elementorFrontend && window.elementorFrontend.elementsHandler) {
+				var $products = jQuery('div.elementor-widget[data-widget_type="loop-grid.product"]');
+				if ($products.length == 1 && $products.find('.e-load-more-anchor').length == 1) {
+					$products.removeClass('e-load-more-pagination-end');
+					window.elementorFrontend.elementsHandler.runReadyTrigger($products);
+				}
+			}
 		});
 	}
 
