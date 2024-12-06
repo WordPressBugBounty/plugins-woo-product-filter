@@ -302,6 +302,8 @@ if (!function_exists('woofilterInstallBaseMsg')) {
 				/* translators: %s: plugin name */
 				echo sprintf(esc_html__('The plugin %s started indexing the product database metadata. If you have a large database, this may take a while, but in the future it will significantly increase your filtering speed.', 'woo-product-filter'), esc_html($plugName)) .
 					'</strong></p></div>';
+			} else {
+				FrameWpf::_()->getModule('overview')->getView()->showRestApiInfo();
 			}
 		}
 	}

@@ -1341,6 +1341,7 @@ class WoofiltersViewWpf extends ViewWpf {
 		
 		$setCurCat = false;
 		if ($prodCatId && $this->getFilterSetting($settings, 'f_set_page_category', false)) {
+			$isEmpty = empty($catSelected);
 			$catSelected[] = $prodCatId;
 			if ($this->getFilterSetting($settings, 'f_set_parent_page_category', false)) {
 				$catSelected = array_merge($catSelected, get_ancestors($prodCatId, 'product_cat'));
@@ -1349,7 +1350,16 @@ class WoofiltersViewWpf extends ViewWpf {
 			if (is_array($childs)) {
 				$catSelected = array_merge($catSelected, $childs);
 			}*/
-			$setCurCat = true;
+			if ($isEmpty && $includeCategoryId) {
+				foreach ($catSelected as $cat) {
+					if (in_array($cat, $includeCategoryId)) {
+						$setCurCat = true;
+						break;
+					}
+				}
+			} else {
+				$setCurCat = true;
+			}
 		}
 
 		$layout      = $this->getFilterLayout($settings, $filterSettings);

@@ -155,7 +155,6 @@ class WoofiltersWpf extends ModuleWpf {
 				}
 			}
 		}
-		
 	}
 	
 	public function addFilterToWoocommerceBlocksAgrs( $args, $block, $page ) {
@@ -221,7 +220,7 @@ class WoofiltersWpf extends ModuleWpf {
 		$widgetName = $widget->get_name();
 
 		$exclude = array('section', 'column', 'social-icons', 'shortcode', 'heading', 'text-editor', 'icon-list', 'image', 'navigation-menu', 'hfe-cart', 'site-logo', 'icon');
-		if (!in_array($widgetName, $exclude) && '' !== $this->mainWCQueryFiltered) {
+		if (!in_array($widgetName, $exclude) && ('' !== $this->mainWCQueryFiltered || $this->isFiltered(false))) {
 			// besa-site-logo: for compatibiliry with Besa Theme
 			if ( ( $paged > 0 && 'popularity' != $orderby && 'shop-standard' != $widgetName ) 
 				|| ( in_array($widgetName, array('archive-posts', 'besa-site-logo')) && get_query_var( 'wpf_query' ) == 1 ) ) {
@@ -4110,7 +4109,7 @@ class WoofiltersWpf extends ModuleWpf {
 	}
 
 	public function queryResults( $result ) {
-		if ( 0 === $result->total ) {
+		if ( 0 === $result->total && $this->isFiltered(false) ) {
 			$options = FrameWpf::_()->getModule( 'options' )->getModel( 'options' )->getAll();
 			if ( isset( $options['not_found_products_message'] ) && '1' === $options['not_found_products_message']['value'] ) {
 				echo '<p class="woocommerce-info">' . esc_html__( 'No products were found matching your selection.', 'woocommerce' ) . '</p>';
