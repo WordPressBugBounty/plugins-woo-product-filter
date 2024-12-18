@@ -155,6 +155,8 @@ class WoofiltersWpf extends ModuleWpf {
 				}
 			}
 		}
+		// Theme Elford + Advanced Layout Build (Product Slider + Product Grid)
+		add_filter( 'avia_product_slide_query', array($this, 'loadShortcodeProductsFilter'), 20, 1 );
 	}
 	
 	public function addFilterToWoocommerceBlocksAgrs( $args, $block, $page ) {
@@ -224,8 +226,10 @@ class WoofiltersWpf extends ModuleWpf {
 			// besa-site-logo: for compatibiliry with Besa Theme
 			if ( ( $paged > 0 && 'popularity' != $orderby && 'shop-standard' != $widgetName ) 
 				|| ( in_array($widgetName, array('archive-posts', 'besa-site-logo')) && get_query_var( 'wpf_query' ) == 1 ) ) {
-				$this->mainWCQueryFiltered['paged'] = $paged;
-				$this->setNewWPQuery($GLOBALS['wp_query'], $this->mainWCQueryFiltered);
+				if ( '' !== $this->mainWCQueryFiltered ) {
+					$this->mainWCQueryFiltered['paged'] = $paged;
+					$this->setNewWPQuery($GLOBALS['wp_query'], $this->mainWCQueryFiltered);
+				}
 			} else {
 				if ( 'eael-woo-product-gallery' == $widgetName ) {
 					trait_exists( '\Essential_Addons_Elementor\Template\Content\Product_Grid' ) && add_action( 'pre_get_posts', array(
@@ -1461,6 +1465,12 @@ class WoofiltersWpf extends ModuleWpf {
 		remove_filter('posts_clauses', array($this, 'addTitleOrderDesc'));
 		return $args;
 	}
+	public function addRandOrder( $args ) {
+		global $wpdb;
+		$args['orderby'] = 'RAND(), ' . $wpdb->posts . '.ID ';
+		remove_filter('posts_clauses', array($this, 'addRandOrder'));
+		return $args;
+	}
 
 	public function addSKUOrder( $args, $order = 'ASC' ) {
 		global $wpdb;
@@ -1657,6 +1667,15 @@ class WoofiltersWpf extends ModuleWpf {
 							break;
 						case 'popularity':
 							add_filter( 'posts_clauses', array( $this, 'addPopularityOrder' ), 99999 );
+							break;
+						case 'title':
+							add_filter('posts_clauses', array($this, 'addTitleOrderAsc'), 99999 );
+							break;
+						case 'title-desc':
+							add_filter('posts_clauses', array($this, 'addTitleOrderDesc'), 99999 );
+							break;
+						case 'rand':
+							add_filter('posts_clauses', array($this, 'addRandOrder'), 99999 );
 							break;
 					}
 				}

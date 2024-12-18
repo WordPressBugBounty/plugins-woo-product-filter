@@ -1373,6 +1373,8 @@
 			_thisObj.QStringWork($queryVarsSettings['paginate_base'], '', noWooPage, $filterWrapper, 'remove');
 			_thisObj.QStringWork('product-page', '', noWooPage, $filterWrapper, 'remove');
 			_thisObj.QStringWork('shopPage', '', noWooPage, $filterWrapper, 'remove');
+			_thisObj.QStringWork('avia-element-paging', '', noWooPage, $filterWrapper, 'remove');
+
 			var curUrl = getCurrentUrlPartsWpf();
 			if (curUrl.search.length) {
 				var $pages = curUrl.search.match(/query-\d+-page/i);
