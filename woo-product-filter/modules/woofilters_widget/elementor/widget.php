@@ -6,7 +6,7 @@ class WpfWoofiltersWidget extends WP_Widget {
 	public function __construct() {
 		$widgetOps = array(
 			'classname' => 'WpfWoofiltersWidget',
-			'description' => esc_html__('Displays Filters', 'woo-product-filter')
+			'description' => 'Displays Filters'
 		);
 		parent::__construct( 'WpfWoofiltersWidget', WPF_WP_PLUGIN_NAME, $widgetOps );
 	}

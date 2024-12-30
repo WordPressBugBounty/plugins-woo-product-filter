@@ -138,6 +138,14 @@ class WoofiltersWpf extends ModuleWpf {
 		}
 		//Integration with Advanced Woo Search
 		add_filter( 'aws_search_results_products_ids', array( $this, 'my_aws_search_results_products_ids') );
+		add_filter( 'aws_search_page_filters', function( $filters ) {
+			if (isset($_GET['pr_stock'])) {
+				unset($filters['in_status']);
+			}
+			return $filters;
+		}, 99 );
+
+
 		//Qi Addons For Elementor
 		add_filter( 'qi_addons_for_elementor_filter_query_params', array( $this, 'replaceArgsIfBuilderGridUsed') );
 		
@@ -186,7 +194,7 @@ class WoofiltersWpf extends ModuleWpf {
 		$q = new WP_Query( DispatcherWpf::applyFilters( 'beforeFilterExistsTermsWithEmptyArgs', array(
 			'post_type'  => 'product',
 			'fields' 	 => 'ids',
-			'meta_query' => array(),
+			'meta_query' => array('wpf_not_clauses' => 1),
 			'tax_query'  => array(),
 			'post__in'	=> array_merge( array( 0 ), $ids ),
 			'aws_post_in'	=> array_merge( array( 0 ), $ids ),
@@ -872,7 +880,7 @@ class WoofiltersWpf extends ModuleWpf {
 			if ( $slugs ) {
 				$metaQuery = $this->searchValueQuery( $metaQuery, 'key', '_stock_status', true );
 				$metaKeyId = $this->getMetaKeyId( '_stock_status' );
-				if ( $metaKeyId ) {
+				if ( $metaKeyId && empty($metaQuery['wpf_not_clauses'])) {
 					$values = FrameWpf::_()->getModule( 'meta' )->getModel( 'meta_values' )->getMetaValueIds( $metaKeyId, $slugs );
 					$this->addWpfMetaClauses( array(
 						'keyId'   => $metaKeyId,

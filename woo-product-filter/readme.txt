@@ -4,27 +4,31 @@ Donate link: https://woobewoo.com/product/woocommerce-filter/
 Tags: product filter, WooCommerce product filter, shop filter, e-commerce filter, WooCommerce filter
 Requires at least: 3.4.0
 Tested up to: 6.7
-Stable tag: 2.7.6
+Stable tag: 2.7.7
+License: GPLv2 or later
+License URI: https://www.gnu.org/licenses/gpl-2.0.html
  
 Filter products by categories, attributes, prices, and more. Elementor Compatibility. Shoppers easily find products with WooCommerce Product Filter
 
 == Description ==
-The [WooCommerce Product Filter plugin](https://woobewoo.com/plugins/woocommerce-filter/?utm_source=wordpress&utm_medium=description&utm_campaign=filter "WooCommerce Product Filter plugin")  enhances your online store by allowing customers to easily refine their product search based on various criteria such as price, categories, tags, taxonomy, and attributes.
-It's designed to be fully customizable, providing you with complete control over each filtering option to best suit your store's needs. 100% compatibility with Elementor.
+The [WooCommerce Product Filter plugin](https://woobewoo.com/plugins/woocommerce-filter/?utm_source=wordpress&utm_medium=description&utm_campaign=filter "WooCommerce Product Filter plugin")  enhances your store by allowing customers to refine their searches by price, categories, tags, taxonomy, attributes and more.
+
+It's fully customizable and 100% compatible with Elementor, giving you full control over filtering options.
 
 = WooCommerce Product Filter Key Features =
 
 **[Comprehensive Filtering](https://woobewoo.com/feature/filters-by-price-price-range-sort-categories-tags-and-attributes?utm_source=wordpress&utm_medium=criteria&utm_campaign=filter "Comprehensive Filtering")**
-customers have the flexibility to filter products by a wide range of criteria including: Price, Price range, Categories, Tags, Author, Featured, On Sale, In Stock, Rating, Search by text**, Attribute filters.
+let customers filter products by: Price, Price range, Categories, Tags, Author, Featured, On Sale, In Stock, Rating, Search by text**, Attribute filters.
 
 **[Flexible Display Options](https://woobewoo.com/plugins/woocommerce-filter/?utm_source=wordpress&utm_medium=description&utm_campaign=filter "Main example")**
 present the filters in various formats to suit your storefront's design and user preferences. Options include: radio button list (single select) dropdown (single select), checkbox list (multi-select)** and icons** for attribute filters (colour, size, rating).
 
 **[AJAX live search](https://woobewoo.com/feature/ajax-live-search?utm_source=wordpress&utm_medium=ajax&utm_campaign=filter "AJAX live search")**
-Enhance the user experience with AJAX live search, which provides instant filtering results without the need to reload the page. This feature can be configured to activate immediately after a user selects their desired filter options and clicks the filter button, making product searches faster and more intuitive.
+Enable instant results without page reloads for a faster shopping  with AJAX live search. AJAX search provides instant filtering results without the need to reload the page. This feature can be configured to activate immediately after a user selects their desired filter options and clicks the filter button, making product searches faster and more intuitive.
 
 **[Elementor Integration](https://woobewoo.com/documentation/elementor-compatibility/ "Elementor Compatibility")**
-WooCommerce Product Filter compatible with Ellementor, allowing you to effortlessly create and customize product filters directly within the Elementor interface. All features of the WooCommerce Product Filter by WBW are accessible within the Elementor tab, providing a streamlined workflow for page building.
+WooCommerce Product Filter compatible with Ellementor. Seamlessly create and customize filters using Elementor’s interface. 
+All features of the WooCommerce Product Filter by WBW are accessible within the Elementor tab, providing a streamlined workflow for page building.
 
 To help you get started, there's a comprehensive video tutorial available that guides you through the process of setting up the WooCommerce Product Filter by WBW, ensuring you can make the most of its features to improve your online store's functionality and user experience.
 [youtube https://youtu.be/5uFBMl5OLW0] 
