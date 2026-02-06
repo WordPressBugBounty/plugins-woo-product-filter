@@ -3,8 +3,8 @@ Contributors: woobewoo
 Donate link: https://woobewoo.com/product/woocommerce-filter/
 Tags: product filter, WooCommerce product filter, shop filter, e-commerce filter, WooCommerce filter
 Requires at least: 3.4.0
-Tested up to: 6.8
-Stable tag: 2.9.8
+Tested up to: 6.9
+Stable tag: 3.0.9
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -151,8 +151,47 @@ You may help us translate the plugin into your language and get the PRO version 
 
 == Changelog ==
 
+= 3.0.9 - 05/02/2026 =
+* Dev - Settings - Change the settings option name from "Browser compatibility" to "Floating mode browser compatibility".
+* Dev - Rename plugin from "Product Filter by WBW" to "Product Filter for WooCommerce by WBW".
+
+= 3.0.8 - 23/01/2026 =
+* Dev - Settings - "Browser compatibility" option added (defaults to `no`).
+
+= 3.0.7 - 12/01/2026 =
+* Dev - Coding standards improved.
+
+= 3.0.6 - 24/12/2025 =
+* Dev - Coding standards improved.
+
+= 3.0.5 - 23/12/2025 =
+* WC tested up to: 10.4.
+* Tested up to: 6.9.
+
+= 3.0.4 - 28/11/2025 =
+* Fix - Check permissions - `exit` function fixed.
+* Fix - Breadcrumbs - "Edit" breadcrumb fixed.
+
+= 3.0.3 - 26/11/2025 =
+* Dev - Coding standards improved.
+
+= 3.0.2 - 19/11/2025 =
+* Dev - Settings - "WooCommerce product query action priority" option added.
+* WC tested up to: 10.3.
+
+= 3.0.1 - 22/10/2025 =
+* Fix - Security - "Missing Authorization to Unauthenticated Settings Update" vulnerability fixed.
+* Fix - Text typo fixed.
+* Dev - Coding standards improved.
+
+= 3.0.0 - 17/10/2025 =
+* Fix - Go PRO tab - Product links fixed.
+
+= 2.9.9 - 10/10/2025 =
+* Dev - Added new option "Discourage search engines from indexing".
+
 = 2.9.8 - 30/09/2025 =
-* Fix - Security - Unauthenticated SQL Injection vulnerability fixed.
+* Fix - Security - "Unauthenticated SQL Injection" vulnerability fixed.
 * WC tested up to: 10.2.
 
 = 2.9.7 - 06/09/2025 =

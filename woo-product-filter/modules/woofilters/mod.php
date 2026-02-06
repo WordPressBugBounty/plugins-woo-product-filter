@@ -2,7 +2,7 @@
 /**
  * Product Filter by WBW - WoofiltersWpf Class
  *
- * @version 2.9.8
+ * @version 3.0.2
  *
  * @author  woobewoo
  */
@@ -45,7 +45,7 @@ class WoofiltersWpf extends ModuleWpf {
 	/**
 	 * init.
 	 *
-	 * @version 2.8.6
+	 * @version 3.0.2
 	 */
 	public function init() {
 		DispatcherWpf::addFilter( 'mainAdminTabs', array( $this, 'addAdminTab' ) );
@@ -70,7 +70,11 @@ class WoofiltersWpf extends ModuleWpf {
 
 		FrameWpf::_()->addScript( 'jquery-ui-autocomplete', '', array( 'jquery' ), false, true );
 
-		add_action( 'woocommerce_product_query', array( $this, 'loadProductsFilter' ), 999 );
+		$loadProductsFilterWCProductQueryPriority = (int) FrameWpf::_()->getModule('options')->getModel()->get('load_products_filter_wc_product_query_priority');
+		if ( 0 == $loadProductsFilterWCProductQueryPriority ) {
+			$loadProductsFilterWCProductQueryPriority = 999;
+		}
+		add_action( 'woocommerce_product_query', array( $this, 'loadProductsFilter' ), $loadProductsFilterWCProductQueryPriority );
 
 		// for Woocommerce Blocks: Product Collection
 		add_filter( 'query_loop_block_query_vars', array( $this, 'addFilterToWoocommerceBlocksAgrs' ), 999, 3 );
@@ -204,6 +208,30 @@ class WoofiltersWpf extends ModuleWpf {
 		if ( is_plugin_active( 'jet-woo-builder/jet-woo-builder.php' ) ) {
 			add_filter('jet-woo-builder/shortcodes/jet-woo-products/final-query-args', array($this, 'replaceArgsIfJetWooBuilderUsed'));
 		}
+
+		// Discourages search engines from indexing.
+		add_action( 'wp_robots', array( $this, 'discourage_search_engines_from_indexing' ), 20 );
+	}
+
+	/**
+	 * Discourages search engines from indexing if the current URL has params starting with `wpf_`.
+	 *
+	 * @version 2.9.9
+	 * @since   2.9.9
+	 *
+	 * @param $robots
+	 *
+	 * @return mixed
+	 */
+	function discourage_search_engines_from_indexing( $robots ) {
+		if (
+			FrameWpf::_()->getModule( 'options' )->getModel()->get( 'discourage_search_engines_from_indexing' ) &&
+			! empty( preg_grep( '/^wpf_/', array_keys( $_GET ) ) )
+		) {
+			$robots['noindex'] = true;
+		}
+
+		return $robots;
 	}
 
 	/**
