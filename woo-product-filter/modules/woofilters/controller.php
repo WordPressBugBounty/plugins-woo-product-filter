@@ -2,6 +2,8 @@
 /**
  * Product Filter by WBW - WoofiltersControllerWpf Class
  *
+ * @version 3.1.1
+ *
  * @author  woobewoo
  */
 
@@ -584,21 +586,8 @@ class WoofiltersControllerWpf extends ControllerWpf {
 	}
 
 	/**
-	 * Clone orderby new wp_query parametr.
-	 *
-	 * @deprecated 1.3.4
-	 * @deprecated No longer used by internal code and not recommended.
-	 *
-	 * @param array $args
-	 *
-	 * @return array
+	 * getTaxonomyTerms.
 	 */
-	/*public function order_by_popularity_post_clauses_clone( $args ) {
-		global $wpdb;
-		$args['orderby'] = "$wpdb->postmeta.meta_value+0 DESC, $wpdb->posts.post_date DESC";
-		return $args;
-	}*/
-
 	public function getTaxonomyTerms() {
 
 		$res   = new ResponseWpf();
@@ -615,10 +604,12 @@ class WoofiltersControllerWpf extends ControllerWpf {
 	}
 
 	/**
-	 * Creat args for WP_Query
+	 * Create args for WP_Query.
+	 *
+	 * @version 3.1.1
 	 *
 	 * @param array $filtersDataBackend Filters arranged with filtering order with some specific filtering data in it
-	 * @param array $queryvars Query fiiltering variables
+	 * @param array $queryvars Query filtering variables
 	 * @param array $filterSettings Some filter block settings
 	 * @param array $generalSettings Filters arranged with filtering order with all filter settings
 	 * @param array $woocommerceSettings If we do not have own filtering result we must take it from woocommerce if they are set
@@ -782,20 +773,14 @@ class WoofiltersControllerWpf extends ControllerWpf {
 								$args['order']   = 'ASC';
 								break;
 							case 'price':
-								remove_all_filters('woocommerce_get_catalog_ordering_args');
-								$WC_Query = new WC_Query();
-								$vars     = $WC_Query->get_catalog_ordering_args('price');
-								if ( is_array($vars) ) {
-									$args = array_merge($args, $vars);
-								}
+								$args['orderby']  = 'meta_value_num';
+								$args['order']    = 'ASC';
+								$args['meta_key'] = '_price';
 								break;
 							case 'price-desc':
-								remove_all_filters('woocommerce_get_catalog_ordering_args');
-								$WC_Query = new WC_Query();
-								$vars     = $WC_Query->get_catalog_ordering_args('price', 'DESC');
-								if ( is_array($vars) ) {
-									$args = array_merge($args, $vars);
-								}
+								$args['orderby']  = 'meta_value_num';
+								$args['order']    = 'DESC';
+								$args['meta_key'] = '_price';
 								break;
 							case 'popularity':
 								$args['orderby']  = 'meta_value_num';
