@@ -1,7 +1,7 @@
 /**
  * Product Filter by WBW - Frontend Woofilters JS
  *
- * @version 2.8.6
+ * @version 3.1.2
  *
  * @author  woobewoo
  */
@@ -1170,6 +1170,11 @@
 		app.wpfNewUrl = app.wpfOldUrl;
 	});
 
+	/**
+	 * filtering.
+	 *
+	 * @version 3.1.2
+	 */
 	WpfFrontendPage.prototype.filtering = (function ($filterWrapper, clearAll, redirectLink, onlyRecalcFilter) {
 		var _thisObj = this.$obj;
 		_thisObj.chageRangeFieldWidth();
@@ -1461,9 +1466,6 @@
 						var requestData =_thisObj.getAjaxRequestData($filtersDataBackend, $queryVars, $filterSettings, $generalSettings, $shortcodeAttr, $woocommerceSettings);
 						wpfDoActionsAfterLoad(_thisObj.filteringId, -1, requestData);
 					}
-					if (_thisObj.isSafari || navigator.userAgent.match(/firefox|fxios/i)) location.reload(true);
-					else location.reload();
-					return;
 				}
 
 				_thisObj.currentFilterBackend = $filtersDataBackend;
@@ -3654,7 +3656,11 @@ function removePagenum(url) {
     });
 }
 
-//Function used to remove querystring
+/**
+ * Removes querystring.
+ *
+ * @version 3.1.2
+ */
 function removeQString(key, $wooPage, $filterWrapper) {
 	removePageQString();
 	//Get query string value
@@ -3672,21 +3678,10 @@ function removeQString(key, $wooPage, $filterWrapper) {
 		var urlValue=curUrl.href + searchUrl;
 	}
 	if(key!="") {
-		var oldValue = getParameterByName(key, searchUrl),
-			removeVal=key+"="+oldValue;
-
-		if(searchUrl.indexOf('?'+removeVal+'&')!= "-1") {
-			urlValue=urlValue.replace('?'+removeVal+'&','?');
-		}
-		else if(searchUrl.indexOf('&'+removeVal+'&')!= "-1") {
-			urlValue=urlValue.replace('&'+removeVal+'&','&');
-		}
-		else if(searchUrl.indexOf('?'+removeVal)!= "-1") {
-			urlValue=urlValue.replace('?'+removeVal,'');
-		}
-		else if(searchUrl.indexOf('&'+removeVal)!= "-1") {
-			urlValue=urlValue.replace('&'+removeVal,'');
-		}
+		const oldValue = getParameterByName(key, searchUrl);
+		const newUrlValue = new URL(urlValue);
+		newUrlValue.searchParams.delete(key, oldValue);
+		urlValue = newUrlValue.toString().replace(/\+/g, '%20');
 		if($wooPage){
 			urlValue = urlValue.replace(curUrl.href,'');
 		}
