@@ -2,7 +2,7 @@
 /**
  * Product Filter by WBW - WoofiltersControllerWpf Class
  *
- * @version 3.1.1
+ * @version 3.1.3
  *
  * @author  woobewoo
  */
@@ -1150,5 +1150,40 @@ class WoofiltersControllerWpf extends ControllerWpf {
 		}
 
 		return $args;
+	}
+
+	/**
+	 * getPermissions.
+	 *
+	 * @version 3.1.3
+	 * @since   3.1.3
+	 *
+	 * @return array
+	 */
+	public function getPermissions() {
+		return array(
+			WPF_METHODS => array(
+				'getListForTbl' => array(
+					WPF_ADMIN
+				),
+				'save' => array(
+					WPF_ADMIN
+				),
+				'removeGroup' => array(
+					WPF_ADMIN
+				),
+				'deleteByID' => array(
+					WPF_ADMIN
+				),
+				'drawFilterAjax' => array(
+					WPF_ADMIN
+				),
+				'filtersFrontend' => array(
+					WPF_GUEST,
+					WPF_ADMIN,
+					WPF_LOGGED
+				),
+			),
+		);
 	}
 }
