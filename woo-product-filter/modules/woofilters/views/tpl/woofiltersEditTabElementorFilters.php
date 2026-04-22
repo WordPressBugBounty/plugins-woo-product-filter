@@ -1,4 +1,14 @@
 <?php
+/**
+ * Product Filter by WBW - Woofilters Edit Tab Elementor Filters
+ *
+ * @version 3.1.7
+ *
+ * @author  woobewoo
+ */
+
+defined( 'ABSPATH' ) || exit;
+
 $isPro = FrameWpf::_()->isPro();
 $labelPro = '';
 if (!$isPro) {
@@ -41,7 +51,7 @@ $formLink = FrameWpf::_()->getModule('options')->getTabUrl( FrameWpf::_()->getMo
 
 <div class="woobewoo-plugin" id="containerWrapperElementor">
 	<form id="wpfFiltersEditForm" data-href="<?php echo esc_attr($formLink); ?>">
-		<div class="row">
+		<div class="woobewoo_row">
 			<div class="col-md-12">
 				<div class="woobewoo-input-group" id="wpfChooseFiltersBlock" data-no-preview="1">
 					<div class="woobewoo-group-label">
@@ -56,7 +66,7 @@ $formLink = FrameWpf::_()->getModule('options')->getTabUrl( FrameWpf::_()->getMo
 			</div>
 		</div>
 		<div class="wpfMainTabsContainer">
-			<div class="row">
+			<div class="woobewoo_row">
 				<div class="col-md-12 wpfFiltersTabContents">
 					<?php include_once 'woofiltersEditTabFilters.php'; ?>
 				</div>
@@ -76,8 +86,8 @@ $formLink = FrameWpf::_()->getModule('options')->getTabUrl( FrameWpf::_()->getMo
 			'value' => ''
 		));
 		?>
-		
-		
+
+
 		<?php HtmlWpf::hidden( 'mod', array( 'value' => 'woofilters' ) ); ?>
 		<?php HtmlWpf::hidden( 'action', array( 'value' => 'save' ) ); ?>
 		<?php HtmlWpf::hidden( 'id', array( 'value' => '' ) ); ?>

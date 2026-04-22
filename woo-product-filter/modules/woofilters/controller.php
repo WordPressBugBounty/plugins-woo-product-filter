@@ -2,7 +2,7 @@
 /**
  * Product Filter by WBW - WoofiltersControllerWpf Class
  *
- * @version 3.1.3
+ * @version 3.1.7
  *
  * @author  woobewoo
  */
@@ -13,6 +13,178 @@ class WoofiltersControllerWpf extends ControllerWpf {
 
 	protected $_code = 'woofilters';
 
+	/**
+	 * Init.
+	 *
+	 * @version 3.1.7
+	 * @since   3.1.7
+	 */
+	public function init() {
+		parent::init();
+	}
+
+	/**
+	 * resolveTaxonomyFromSlugKey.
+	 *
+	 * @version 3.1.7
+	 * @since   3.1.7
+	 */
+	private function resolveTaxonomyFromSlugKey($key) {
+		// Product categories
+		if (strpos($key, 'wpf_filter_cat_') === 0) {
+			return 'product_cat';
+		}
+
+		// Product tag
+		if (strpos($key, 'product_tag_') === 0) {
+			return 'product_tag';
+		}
+
+		// Product brand (taxonomy)
+		if (strpos($key, 'product_brand_') === 0) {
+			return 'product_brand';
+		}
+		return false;
+	}
+
+	/**
+	 * handleSlugFiltersTemplateRedirect.
+	 *
+	 * @version 3.1.7
+	 * @since   3.1.7
+	 */
+	public function handleSlugFiltersTemplateRedirect($wp) {
+		if (is_admin()) {
+			return;
+		}
+
+		// Comes from rewrite: /shop-slug/wbw/(.+?) -> wbw_custom_filters
+		$slugString = isset($wp->query_vars['wbw_custom_filters']) ? $wp->query_vars['wbw_custom_filters'] : '';
+		if (! $slugString) {
+			return;
+		}
+
+		$segments = explode('/', trim($slugString, '/'));
+		if (count($segments) < 2) {
+			return;
+		}
+
+		$hasFilter     = false;
+		$totalSelected = 0;
+
+		for ($i = 0; $i < count($segments); $i += 2) {
+			$rawKey   = isset($segments[$i]) ? $segments[$i] : '';
+			$rawValue = isset($segments[$i + 1]) ? $segments[$i + 1] : '';
+
+			$key   = sanitize_key($rawKey);
+			$value = (string) $rawValue;
+
+			if (! $key || '' === $value) {
+				continue;
+			}
+
+			// 1) Decode value from URL path (handles %7C, %20, etc.)
+			$value = rawurldecode($value);
+			$value = str_replace('+', ' ', $value);
+
+			// 2) Detect delimiter for multi-select: "~", "|", "," or ";"
+			$delim = null;
+			foreach (array('~', '|', ',', ';') as $d) {
+				if (false !== strpos($value, $d)) {
+					$delim = $d;
+					break;
+				}
+			}
+			$normalizedDelim = ( '~' === $delim ) ? '|' : $delim;
+			$parts = $delim
+				? array_filter(array_map('trim', explode($delim, $value)))
+				: array(trim($value));
+
+			// 3) Try to resolve as taxonomy (categories, tags, attributes, brands...)
+			$taxonomy = $this->resolveTaxonomyFromSlugKey($key);
+			if (! $taxonomy && taxonomy_exists($key)) {
+				// Key itself is taxonomy name, e.g. "product_cat", "product_tag", "pa_color"
+				$taxonomy = $key;
+			}
+
+			if ($taxonomy) {
+				$ids = array();
+
+				foreach ($parts as $slug) {
+					if ('' === $slug) {
+						continue;
+					}
+					$term = get_term_by('slug', $slug, $taxonomy);
+					if ($term && ! is_wp_error($term)) {
+						$ids[] = (int) $term->term_id;
+					}
+				}
+				// If no valid term was found for this pair – skip it completely
+				if (empty($ids)) {
+					continue;
+				}
+				// Rebuild value as ID list with the same delimiter (or single ID)
+				$value = $normalizedDelim ? implode($normalizedDelim, $ids) : (string) $ids[0];
+
+				// For main category filter also set helper query var for shop page logic
+				if (0 === strpos($key, 'wpf_filter_cat_') || 'product_cat' === $key) {
+					set_query_var('product_category_id', (int) $ids[0]);
+				}
+			}
+			// Normalize "~" path delimiter back to internal "|" delimiter.
+			if (! $taxonomy && $normalizedDelim && $delim && $normalizedDelim !== $delim) {
+				$value = implode($normalizedDelim, $parts);
+			}
+			// else: non-tax filters (pr_stock, custom fields, etc.) keep decoded values as-is
+
+			// 4) Push into request/query vars so the plugin works as if they were GET params
+			$_GET[$key]           = $value;
+			$_REQUEST[$key]       = $value;
+			$wp->query_vars[$key] = $value;
+
+			$hasFilter = true;
+
+			// 5) Count selections for wpf_count (uses "|" as multi-delimiter)
+			$vals          = array_filter(explode('|', (string) $value));
+			$totalSelected += count($vals);
+		}
+
+		// 6) Set helper flags like normal query-string filtering does
+		if ($hasFilter) {
+			$_GET['wpf_fbv']           = 1;
+			$_REQUEST['wpf_fbv']       = 1;
+			$wp->query_vars['wpf_fbv'] = 1;
+
+			if ($totalSelected > 0) {
+				$_GET['wpf_count']           = (string) $totalSelected;
+				$_REQUEST['wpf_count']       = (string) $totalSelected;
+				$wp->query_vars['wpf_count'] = (string) $totalSelected;
+			}
+		}
+	}
+
+	/**
+	 * _getShopPageSlug.
+	 *
+	 * @version 3.1.7
+	 * @since   3.1.7
+	 */
+	public function _getShopPageSlug() {
+		$shop_page_id = get_option('woocommerce_shop_page_id');
+		return get_post_field('post_name', $shop_page_id);
+	}
+
+	/**
+	 * addQueryVars.
+	 *
+	 * @version 3.1.7
+	 * @since   3.1.7
+	 */
+	public function addQueryVars($vars) {
+		$vars[] = 'wbw_custom_filters';
+		return $vars;
+	}
+
 	protected function _prepareTextLikeSearch( $val ) {
 		$query = '(title LIKE "%' . $val . '%"';
 		if ( is_numeric($val) ) {
@@ -21,12 +193,19 @@ class WoofiltersControllerWpf extends ControllerWpf {
 		$query .= ')';
 		return $query;
 	}
+
+	/**
+	 * _prepareListForTbl.
+	 *
+	 * @version 3.1.7
+	 */
 	public function _prepareListForTbl( $data ) {
 		foreach ( $data as $key => $row ) {
 			$id        = $row['id'];
 			$shortcode = '[' . WPF_SHORTCODE . ' id=' . $id . ']';
-			$titleUrl  = '<a href="' . esc_url($this->getModule()->getEditLink( $id )) . '">' . esc_html($row['title']) . ' <i class="fa fa-fw fa-pencil"></i></a> <a data-filter-id="' . $id . '" class="wpfDuplicateFilter" href="" title="' . esc_attr__('Duplicate filter', 'woo-product-filter') . '"><i class="fa fa-fw fa-clone"></i></a>';
+			$titleUrl  = '<a href="' . esc_url($this->getModule()->getEditLink($id)) . '">' . esc_html($row['title']) . '</a>';
 
+			$data[$key]['actions'] = '<a href="' . esc_url($this->getModule()->getEditLink($id)) . '"> <i class="fa fa-fw fa-pencil"></i></a> <a data-filter-id="' . $id . '" class="wpfDuplicateFilter" href="" title="' . esc_attr__('Duplicate filter', 'woo-product-filter') . '"><i class="fa fa-fw fa-clone"></i></a>';
 			$data[$key]['shortcode'] = $shortcode;
 			$data[$key]['title']     = DispatcherWpf::applyFilters('prepareFilterListTitle', $titleUrl, $row);
 		}
@@ -91,6 +270,33 @@ class WoofiltersControllerWpf extends ControllerWpf {
 		return $res->ajaxExec();
 	}
 
+	/**
+	 * saveCategoryLabel.
+	 *
+	 * @version 3.1.7
+	 * @since   3.1.7
+	 */
+	public function saveCategoryLabel() {
+		// 🔐 Security
+		check_ajax_referer('wpf-save-nonce', 'wpfNonce');
+		if (! current_user_can('manage_options')) {
+			wp_die();
+		}
+		$term_id = isset($_POST['term_id']) ? absint($_POST['term_id']) : 0;
+		$label   = isset($_POST['label']) ? sanitize_text_field($_POST['label']) : '';
+		if (! $term_id || $label === '') {
+			wp_send_json_error(__('Invalid data', 'woo-product-filter'));
+		}
+		$map = get_option('wpf_category_custom_labels', array());
+		$map[$term_id] = $label;
+		update_option('wpf_category_custom_labels', $map, false);
+
+		wp_send_json_success(array(
+			'term_id' => $term_id,
+			'label'   => $label,
+		));
+	}
+
 	public function deleteByID() {
 		check_ajax_referer('wpf-save-nonce', 'wpfNonce');
 		if ( ! current_user_can('manage_options') ) {
@@ -128,6 +334,11 @@ class WoofiltersControllerWpf extends ControllerWpf {
 		return $res->ajaxExec();
 	}
 
+	/**
+	 * filtersFrontend.
+	 *
+	 * @version 3.1.7
+	 */
 	public function filtersFrontend() {
 		$res = new ResponseWpf();
 
@@ -373,10 +584,10 @@ class WoofiltersControllerWpf extends ControllerWpf {
 					endwhile;
 					$productsHtml = ob_get_clean();
 					if ( empty($productsHtml) ) {
-						$productsHtml = __($filterSettings['text_no_products'], 'woo-product-filter');
+						$productsHtml = ' <div class="no-products-found">' . $filterSettings['text_no_products'] . '</div>';
 					}
 				} else {
-					$productsHtml = __($filterSettings['text_no_products'], 'woo-product-filter');
+					$productsHtml = ' <div class="no-products-found">' . $filterSettings['text_no_products'] . '</div>';
 				}
 			}
 
@@ -606,7 +817,7 @@ class WoofiltersControllerWpf extends ControllerWpf {
 	/**
 	 * Create args for WP_Query.
 	 *
-	 * @version 3.1.1
+	 * @version 3.1.7
 	 *
 	 * @param array $filtersDataBackend Filters arranged with filtering order with some specific filtering data in it
 	 * @param array $queryvars Query filtering variables
@@ -958,6 +1169,58 @@ class WoofiltersControllerWpf extends ControllerWpf {
 							}
 						}
 						break;
+					case 'wpfCustomField':
+						$customfield = $setting['settings'] ?? [];
+						$name        = $setting['name'] ?? '';
+						$meta_key    = substr($name, 3);
+
+						if (empty($meta_key) || empty($customfield)) {
+							break;
+						}
+
+						$customOptions = FrameWpf::_()
+							->getModule('woofilters')
+							->getModel('woofilters')
+							->getCustomFieldFilterOptions('product');
+
+						$fieldtype = $customOptions[$meta_key]['type'] ?? '';
+
+						if (!is_array($customfield)) {
+							$customfield = strpos($customfield, '|') !== false
+								? explode('|', $customfield)
+								: array($customfield);
+						}
+
+						$values = array_filter(array_map('trim', $customfield));
+						if (empty($values)) {
+							break;
+						}
+
+						$clauses = array();
+						foreach ($values as $single_value) {
+							$normalized = trim($single_value);
+
+							// Checkbox values are commonly stored serialized.
+							$search = ('checkbox' === $fieldtype)
+								? '"' . $normalized . '"'
+								: $normalized;
+
+							$clauses[] = array(
+								'key'     => $meta_key,
+								'value'   => $search,
+								'compare' => 'LIKE',
+							);
+						}
+
+						if (!empty($clauses)) {
+							if (count($clauses) === 1) {
+								$args['meta_query'][] = $clauses[0];
+							} else {
+								$clauses['relation'] = 'OR';
+								$args['meta_query'][] = $clauses;
+							}
+						}
+						break;
 					case 'wpfBrand':
 						$brandsIdStr = $setting['settings'];
 						if ( $brandsIdStr ) {
@@ -1155,7 +1418,7 @@ class WoofiltersControllerWpf extends ControllerWpf {
 	/**
 	 * getPermissions.
 	 *
-	 * @version 3.1.3
+	 * @version 3.1.7
 	 * @since   3.1.3
 	 *
 	 * @return array
@@ -1173,6 +1436,9 @@ class WoofiltersControllerWpf extends ControllerWpf {
 					WPF_ADMIN
 				),
 				'deleteByID' => array(
+					WPF_ADMIN
+				),
+				'saveCategoryLabel' => array(
 					WPF_ADMIN
 				),
 				'drawFilterAjax' => array(

@@ -2,7 +2,7 @@
 /**
  * Product Filter by WBW - WoofiltersWpf Class
  *
- * @version 3.1.3
+ * @version 3.1.7
  *
  * @author  woobewoo
  */
@@ -45,7 +45,7 @@ class WoofiltersWpf extends ModuleWpf {
 	/**
 	 * init.
 	 *
-	 * @version 3.0.2
+	 * @version 3.1.7
 	 */
 	public function init() {
 		DispatcherWpf::addFilter( 'mainAdminTabs', array( $this, 'addAdminTab' ) );
@@ -78,6 +78,13 @@ class WoofiltersWpf extends ModuleWpf {
 
 		// for Woocommerce Blocks: Product Collection
 		add_filter( 'query_loop_block_query_vars', array( $this, 'addFilterToWoocommerceBlocksAgrs' ), 999, 3 );
+
+		add_action( 'init', array( $this, 'registerWpfSlugFormatRewrites' ), 10 );
+		add_filter( 'query_vars', array( $this, 'addWpfSlugFormatQueryVars' ) );
+		add_action( 'parse_request', array( $this, 'maybeParseWpfSlugFormatRequest' ), 1 );
+		if ( is_admin() ) {
+			add_action( 'admin_init', array( $this, 'wpfMaybeBootstrapSlugFormatRewriteOption' ), 20 );
+		}
 
 		add_action( 'woocommerce_shortcode_products_query', array( $this, 'loadShortcodeProductsFilter' ), 999, 3 );
 
@@ -1149,6 +1156,8 @@ class WoofiltersWpf extends ModuleWpf {
 
 	/**
 	 * addCustomMetaQuery.
+	 *
+	 * @version 3.1.7
 	 */
 	public function addCustomMetaQuery( $metaQuery, $data, $mode ) {
 		if ( ! is_array( $metaQuery ) ) {
@@ -1166,6 +1175,50 @@ class WoofiltersWpf extends ModuleWpf {
 			$metaQuery = array_merge( $metaQuery, $price );
 			remove_filter( 'posts_clauses', array( WC()->query, 'price_filter_post_clauses' ), 10, 2 );
 		}
+		//meta query custom field
+		foreach ($data as $key => $value) {
+			if (strpos($key, 'pc_') !== 0) {
+				continue;
+			}
+			$meta_key = substr($key, 3);
+			if (empty($value)) {
+				continue;
+			}
+			// Split by | and clean values
+			$values = array_map('trim', explode('|', $value));
+			$values = array_filter($values); // remove empty
+
+			if (empty($values)) {
+				continue;
+			}
+			$CustomOptions = FrameWpf::_()->getModule('woofilters')->getModel('woofilters')->getCustomFieldFilterOptions('product');
+			$clauses = [];
+			$fieldtype = $CustomOptions[$meta_key]['type'] ?? '';
+			foreach ($values as $single_value) {
+				// Wrap in double quotes — matches how ACF / serialized strings are stored
+				// MySQL LIKE is case-insensitive in most WP environments (utf8mb4_unicode_ci)
+				if ($fieldtype == 'checkbox') {
+					$search = '"' . $single_value . '"';
+				} else {
+					$search =  $single_value;
+				}
+				$clauses[] = [
+					'key'     => $meta_key,
+					'value'   => $search,
+					'compare' => 'LIKE',
+				];
+			}
+			if (!empty($clauses)) {
+				if (count($clauses) === 1) {
+					$metaQuery[] = $clauses[0];
+				} else {
+					// Multiple values → match ANY of them (OR)
+					$clauses['relation'] = 'OR';
+					$metaQuery[] = $clauses;
+				}
+			}
+		}
+		//meta query custom field
 		if ( ! empty( $data['pr_onsale'] ) && ReqWpf::getVar( 'dgwt_wcas' ) ) {
 			$metaQuery[] = array(
 				'key'     => '_sale_price',
@@ -4266,8 +4319,8 @@ class WoofiltersWpf extends ModuleWpf {
 					$termIds[] = $termId;
 
 					$sqlTemp                            = "SELECT count(DISTINCT tr.`object_id`) FROM {$listTable} AS wpf_temp
-    					INNER JOIN {$wpdb->term_relationships} AS tr ON (tr.`object_id`=wpf_temp.`ID`)
-					    INNER JOIN {$wpdb->term_taxonomy} AS wtf ON tr.`term_taxonomy_id` = wtf.`term_taxonomy_id`
+						INNER JOIN {$wpdb->term_relationships} AS tr ON (tr.`object_id`=wpf_temp.`ID`)
+						INNER JOIN {$wpdb->term_taxonomy} AS wtf ON tr.`term_taxonomy_id` = wtf.`term_taxonomy_id`
 						WHERE wtf.`term_id` IN (" . implode( ',', $termIds ) . ')';
 					$cnt                                = intval( DbWpf::get( $sqlTemp, 'one' ) );
 					$existTerms[ $taxonomy ][ $termId ] = $cnt;
@@ -5084,4 +5137,119 @@ class WoofiltersWpf extends ModuleWpf {
 		return ( $wp_query ? $wp_query->get_queried_object_id() : 0 );
 	}
 
+	/**
+	 * isWpfSlugFormatRewriteActive.
+	 *
+	 * @version 3.1.7
+	 * @since   3.1.7
+	 */
+	protected function isWpfSlugFormatRewriteActive() {
+		return (bool) (int) get_option( 'wpf_slug_format_rewrite_active', 0 );
+	}
+
+	/**
+	 * registerWpfSlugFormatRewrites.
+	 *
+	 * @version 3.1.7
+	 * @since   3.1.7
+	 */
+	public function registerWpfSlugFormatRewrites() {
+		if ( ! $this->isWpfSlugFormatRewriteActive() ) {
+			return;
+		}
+		$shop_page_id = (int) get_option( 'woocommerce_shop_page_id' );
+		if ( $shop_page_id <= 0 ) {
+			return;
+		}
+		$slug = get_post_field( 'post_name', $shop_page_id );
+		if ( ! is_string( $slug ) || '' === $slug ) {
+			return;
+		}
+		$escaped = preg_quote( $slug, '/' );
+		add_rewrite_rule(
+			'^' . $escaped . '/wbw/(.+?)/?$',
+			'index.php?pagename=' . $slug . '&wbw_custom_filters=$matches[1]',
+			'top'
+		);
+	}
+
+	/**
+	 * addWpfSlugFormatQueryVars.
+	 *
+	 * @version 3.1.7
+	 * @since   3.1.7
+	 */
+	public function addWpfSlugFormatQueryVars( $vars ) {
+		if ( ! $this->isWpfSlugFormatRewriteActive() ) {
+			return $vars;
+		}
+		$vars[] = 'wbw_custom_filters';
+		return $vars;
+	}
+
+	/**
+	 * maybeParseWpfSlugFormatRequest.
+	 *
+	 * @version 3.1.7
+	 * @since   3.1.7
+	 */
+	public function maybeParseWpfSlugFormatRequest( $wp ) {
+		if ( is_admin() || ! $this->isWpfSlugFormatRewriteActive() ) {
+			return;
+		}
+		if ( ! $wp instanceof WP || empty( $wp->query_vars['wbw_custom_filters'] ) ) {
+			return;
+		}
+		$this->getController()->handleSlugFiltersTemplateRedirect( $wp );
+	}
+
+	/**
+	 * wpfMaybeBootstrapSlugFormatRewriteOption.
+	 *
+	 * @version 3.1.7
+	 * @since   3.1.7
+	 */
+	public function wpfMaybeBootstrapSlugFormatRewriteOption() {
+		$flush_needed = false;
+		if ( '1' == get_option( 'wpf_slug_format_rewrite_flush_needed' ) ) {
+			$flush_needed = true;
+			delete_option( 'wpf_slug_format_rewrite_flush_needed' );
+		}
+
+		if ( '1' !== get_option( 'wpf_slug_format_rewrite_option_bootstrapped', '' ) ) {
+			$this->getModel( 'woofilters' )->syncSlugFormatRewriteSiteOption();
+			update_option( 'wpf_slug_format_rewrite_option_bootstrapped', '1', true );
+			$flush_needed = true;
+		}
+
+		// Recover if another plugin flushed rules while our plugin was inactive.
+		if ( $flush_needed || ( $this->isWpfSlugFormatRewriteActive() && ! $this->hasWpfSlugRewriteRule() ) ) {
+			flush_rewrite_rules( false );
+		}
+	}
+
+	/**
+	 * hasWpfSlugRewriteRule.
+	 *
+	 * @version 3.1.7
+	 * @since   3.1.7
+	 */
+	protected function hasWpfSlugRewriteRule() {
+		$shop_page_id = (int) get_option( 'woocommerce_shop_page_id' );
+		if ( $shop_page_id <= 0 ) {
+			return false;
+		}
+		$slug = get_post_field( 'post_name', $shop_page_id );
+		if ( ! is_string( $slug ) || '' === $slug ) {
+			return false;
+		}
+
+		$rules = get_option( 'rewrite_rules', array() );
+		if ( ! is_array( $rules ) ) {
+			return false;
+		}
+
+		$pattern = '^' . preg_quote( $slug, '/' ) . '/wbw/(.+?)/?$';
+		return isset( $rules[ $pattern ] );
+	}
 }

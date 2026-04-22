@@ -2,8 +2,8 @@
 /**
  * Product Filter by WBW - Pro Label
  *
- * @version 3.1.4
- * @since   3.1.4
+ * @version 3.1.7
+ * @since   3.1.7
  *
  * @author  woobewoo
  */
@@ -12,7 +12,7 @@ defined( 'ABSPATH' ) || exit;
 
 ?>
 <a
-	class="proLabel ms-2"
+	class="woobewoo_proLabel woobewoo-ms-2"
 	href="<?php echo esc_url($this->proLink); ?>"
 	target="_blank">
 	<svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">

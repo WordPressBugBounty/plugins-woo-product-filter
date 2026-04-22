@@ -2,7 +2,7 @@
 /**
  * Product Filter by WBW - Options Pro Tab Content
  *
- * @version 3.0.0
+ * @version 3.1.7
  *
  * @author  woobewoo
  */
@@ -11,9 +11,6 @@ defined( 'ABSPATH' ) || exit;
 
 ?>
 <section class="wpf-gopro wpf-gopro-wrapper">
-	<div class="wpf-gopro-header-title">
-		<?php esc_html_e('CHOOSE YOUR LICENSE', 'woo-product-filter'); ?>
-	</div>
 	<div class="woobewoo-clear"></div>
 	<div class="wpf-gopro-header">
 		<div class="wpf-gopro-switch">
@@ -22,8 +19,8 @@ defined( 'ABSPATH' ) || exit;
 			<div class="wpf-gopro-text active"><?php esc_html_e('Lifetime', 'woo-product-filter'); ?></div>
 		</div>
 	</div>
-	<div class="row wpf-gopro-block-row wpf-gopro-hidden">
-		<div class="col-sm-4">
+	<div class="woobewoo_row wpf-gopro-block-row wpf-gopro-hidden">
+		<div class="col-md-4">
 			<div class="wpf-gopro-block">
 				<div class="wpf-gopro-block-header">
 					<div class="wpf-gopro-title">
@@ -48,7 +45,7 @@ defined( 'ABSPATH' ) || exit;
 				</div>
 			</div>
 		</div>
-		<div class="col-sm-4">
+		<div class="col-md-4">
 			<div class="wpf-gopro-block">
 				<div class="wpf-gopro-block-header">
 					<div class="wpf-gopro-title">
@@ -73,7 +70,7 @@ defined( 'ABSPATH' ) || exit;
 				</div>
 			</div>
 		</div>
-		<div class="col-sm-4">
+		<div class="col-md-4">
 			<div class="wpf-gopro-block">
 				<div class="wpf-gopro-block-header">
 					<div class="wpf-gopro-title">
@@ -99,8 +96,8 @@ defined( 'ABSPATH' ) || exit;
 			</div>
 		</div>
 	</div>
-	<div class="row wpf-gopro-block-row">
-		<div class="col-sm-4">
+	<div class="woobewoo_row wpf-gopro-block-row">
+		<div class="col-md-4">
 			<div class="wpf-gopro-block">
 				<div class="wpf-gopro-block-header">
 					<div class="wpf-gopro-title">
@@ -124,7 +121,7 @@ defined( 'ABSPATH' ) || exit;
 				</div>
 			</div>
 		</div>
-		<div class="col-sm-4">
+		<div class="col-md-4">
 			<div class="wpf-gopro-block">
 				<div class="wpf-gopro-block-header">
 					<div class="wpf-gopro-title">
@@ -148,7 +145,7 @@ defined( 'ABSPATH' ) || exit;
 				</div>
 			</div>
 		</div>
-		<div class="col-sm-4">
+		<div class="col-md-4">
 			<div class="wpf-gopro-block">
 				<div class="wpf-gopro-block-header">
 					<div class="wpf-gopro-title">
@@ -189,8 +186,8 @@ defined( 'ABSPATH' ) || exit;
 			<div class="wpf-gopro-text active"><?php esc_html_e('Lifetime', 'woo-product-filter'); ?></div>
 		</div>
 	</div>
-	<div class="row wpf-gopro-block-row wpf-gopro-hidden">
-		<div class="col-sm-4">
+	<div class="woobewoo_row wpf-gopro-block-row wpf-gopro-hidden">
+		<div class="col-md-4">
 			<div class="wpf-gopro-block">
 				<div class="wpf-gopro-block-header">
 					<div class="wpf-gopro-title">
@@ -218,7 +215,7 @@ defined( 'ABSPATH' ) || exit;
 				</div>
 			</div>
 		</div>
-		<div class="col-sm-4">
+		<div class="col-md-4">
 			<div class="wpf-gopro-block">
 				<div class="wpf-gopro-block-header">
 					<div class="wpf-gopro-title">
@@ -246,7 +243,7 @@ defined( 'ABSPATH' ) || exit;
 				</div>
 			</div>
 		</div>
-		<div class="col-sm-4">
+		<div class="col-md-4">
 			<div class="wpf-gopro-block">
 				<div class="wpf-gopro-block-header">
 					<div class="wpf-gopro-title">
@@ -275,8 +272,8 @@ defined( 'ABSPATH' ) || exit;
 			</div>
 		</div>
 	</div>
-	<div class="row wpf-gopro-block-row">
-		<div class="col-sm-4">
+	<div class="woobewoo_row wpf-gopro-block-row">
+		<div class="col-md-4">
 			<div class="wpf-gopro-block">
 				<div class="wpf-gopro-block-header">
 					<div class="wpf-gopro-title">
@@ -303,7 +300,7 @@ defined( 'ABSPATH' ) || exit;
 				</div>
 			</div>
 		</div>
-		<div class="col-sm-4">
+		<div class="col-md-4">
 			<div class="wpf-gopro-block">
 				<div class="wpf-gopro-block-header">
 					<div class="wpf-gopro-title">
@@ -330,7 +327,7 @@ defined( 'ABSPATH' ) || exit;
 				</div>
 			</div>
 		</div>
-		<div class="col-sm-4">
+		<div class="col-md-4">
 			<div class="wpf-gopro-block">
 				<div class="wpf-gopro-block-header">
 					<div class="wpf-gopro-title">
