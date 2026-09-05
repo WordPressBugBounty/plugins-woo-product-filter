@@ -1,0 +1,437 @@
+<?php
+/**
+ * Product Filter by WBW - WooBeWoo_PF_Req Class
+ *
+ * @version 3.4.0
+ *
+ * @author woobewoo
+ */
+
+defined( 'ABSPATH' ) || exit;
+
+class WooBeWoo_PF_Req {
+
+	protected static $_requestMethod;
+
+	public static $_requestWithNonce = false;
+
+	/**
+	 * verifyRequest.
+	 *
+	 * @version 3.3.0
+	 * @since   3.3.0
+	 *
+	 * @return void
+	 */
+	public static function verifyRequest() {
+		$nonce = empty( $_REQUEST['wpfNonce'] ) ?
+			'' :
+			sanitize_text_field( wp_unslash( $_REQUEST['wpfNonce'] ) );
+		if ( empty( $nonce ) && ! empty( $_REQUEST['_wpnonce'] ) ) {
+			$nonce = sanitize_text_field( wp_unslash( $_REQUEST['_wpnonce'] ) );
+		}
+		if ( ! wp_verify_nonce( $nonce, 'woobewoo-pf-save-nonce' ) ) {
+			wp_send_json_error(
+				array(
+					'message' => __( 'Security check failed.', 'woo-product-filter' ),
+				),
+				403
+			);
+		}
+
+		if ( ! current_user_can( 'manage_options' ) ) {
+			wp_send_json_error(
+				array(
+					'message' => __( 'Sorry, you are not allowed to perform this action.', 'woo-product-filter' ),
+				),
+				403
+			);
+		}
+	}
+
+	/**
+	 * startSession.
+	 *
+	 * @version 3.4.0
+	 */
+	public static function startSession() {
+		if ( ! WooBeWoo_PF_Utils::isSessionStarted() ) {
+			if ( version_compare( phpversion(), '5.7.0', '<' ) ) {
+				session_start();
+			} else {
+				session_start( array( 'read_and_close' => true ) );
+			}
+		}
+	}
+
+	/**
+	 * endSession.
+	 *
+	 * @version 3.4.0
+	 */
+	public static function endSession() {
+		if ( WooBeWoo_PF_Utils::isSessionStarted() ) {
+			session_write_close();
+		}
+	}
+
+	/**
+	 * Function getVar.
+	 *
+	 * @version 3.4.0
+	 *
+	 * @param string $name key in variables array
+	 * @param string $from from where get result = "all", "input", "get"
+	 * @param mixed  $default default value - will be returned if $name wasn't found
+	 *
+	 * @return mixed value of a variable, if didn't found - $default (NULL by default)
+	 */
+	public static function getVar( $name, $from = 'all', $default = null ) {
+		if ( self::$_requestWithNonce ) {
+			$nonce = empty( $_REQUEST['_wpnonce'] ) ?
+				'' :
+				sanitize_text_field( wp_unslash( $_REQUEST['_wpnonce'] ) );
+
+			if ( ! wp_verify_nonce( $nonce, 'my-nonce' ) ) {
+				echo esc_html__( 'Security check', 'woo-product-filter' );
+				exit();
+			}
+		}
+
+		$from = strtolower( $from );
+		if ( 'all' == $from ) {
+			if ( isset( $_GET[ $name ] ) ) {
+				$from = 'get';
+			} elseif ( isset( $_POST[ $name ] ) ) {
+				$from = 'post';
+			}
+		}
+
+		switch ( $from ) {
+			case 'get':
+				if ( isset( $_GET[ $name ] ) ) {
+					return map_deep( wp_unslash( $_GET[ $name ] ), 'sanitize_text_field' );
+				}
+				break;
+			case 'post':
+				if ( isset( $_POST[ $name ] ) ) {
+					return map_deep( wp_unslash( $_POST[ $name ] ), 'sanitize_text_field' );
+				}
+				break;
+			case 'file':
+			case 'files':
+				if ( isset( $_FILES[ $name ] ) ) {
+					return self::sanitizeFiles( $_FILES[ $name ] ); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
+				}
+				break;
+			case 'session':
+				if ( isset( $_SESSION[ $name ] ) ) {
+					return map_deep( $_SESSION[ $name ], 'sanitize_text_field' );
+				}
+				break;
+			case 'server':
+				if ( isset( $_SERVER[ $name ] ) ) {
+					$value =  map_deep( wp_unslash( $_SERVER[ $name ] ), 'sanitize_text_field' );
+					if ( is_string( $value ) && strpos( $value, '_JSON:' ) === 0 ) {
+						$value = explode( '_JSON:', $value );
+						$value = WooBeWoo_PF_Utils::jsonDecode( array_pop( $value ) );
+					}
+					return $value;
+				}
+				break;
+			case 'cookie':
+				if ( isset( $_COOKIE[ $name ] ) ) {
+					$value = map_deep( wp_unslash( $_COOKIE[ $name ] ), 'sanitize_text_field' );
+					if ( is_string( $value ) && strpos( $value, '_JSON:' ) === 0 ) {
+						$value = explode( '_JSON:', $value );
+						$value = WooBeWoo_PF_Utils::jsonDecode( array_pop( $value ) );
+					}
+
+					return $value;
+				}
+				break;
+		}
+
+		return $default;
+	}
+
+	public static function existGetVar( $begin ) {
+		if ( isset( $_GET ) && is_array( $_GET ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+			foreach ( $_GET as $k => $v ) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+				if ( strpos( $k, $begin ) === 0 ) {
+					return true;
+				}
+			}
+		}
+
+		return false;
+	}
+
+	/**
+	 * Getting similar parameters when redirecting to set filter values.
+	 *
+	 * @version 3.1.8
+	 *
+	 * @param string $part part of parameter
+	 *
+	 * @return string
+	 */
+	public static function getFilterRedirect( $part ) {
+		$params = array();
+		if ( self::$_requestWithNonce ) {
+			$nonce = empty( $_REQUEST['_wpnonce'] ) ?
+				'' :
+				sanitize_text_field( wp_unslash( $_REQUEST['_wpnonce'] ) );
+
+			if ( ! wp_verify_nonce( $nonce, 'my-nonce' ) ) {
+				echo esc_html__( 'Security check', 'woo-product-filter' );
+				exit();
+			}
+		}
+
+		if ( isset( $_GET['redirect'] ) ) {
+			foreach ( $_GET as $key => $value ) {
+				if ( strpos( $key, $part ) === 0 ) {
+					$params[] = sanitize_text_field( $value );
+				}
+			}
+		}
+
+		return implode( '|', $params );
+	}
+
+	/**
+	 * sanitizeArray.
+	 *
+	 * @version 3.3.0
+	 */
+	public static function sanitizeArray( $arr ) {
+		$newArr = array();
+		foreach ( $arr as $k => $v ) {
+			$newArr[ $k ] = is_array( $v ) ? self::sanitizeArray( $v ) : sanitize_text_field( $v );
+		}
+
+		return $newArr;
+	}
+
+	public static function isEmpty( $name, $from = 'all' ) {
+		$val = self::getVar( $name, $from );
+
+		return empty( $val );
+	}
+
+	/**
+	 * setVar.
+	 *
+	 * @version 3.4.0
+	 */
+	public static function setVar( $name, $val, $in = 'input', $params = array() ) {
+		$in = strtolower( $in );
+		switch ( $in ) {
+			case 'get':
+				$_GET[ $name ] = $val;
+				break;
+			case 'post':
+				$_POST[ $name ] = $val;
+				break;
+			case 'session':
+				$_SESSION[ $name ] = $val;
+				break;
+			case 'cookie':
+				$expire = isset( $params['expire'] ) ? time() + $params['expire'] : 0;
+				$path   = isset( $params['path'] ) ? $params['path'] : '/';
+				if ( is_array( $val ) || is_object( $val ) ) {
+					$saveVal = '_JSON:' . WooBeWoo_PF_Utils::jsonEncode( $val );
+				} else {
+					$saveVal = $val;
+				}
+				setcookie( $name, $saveVal, $expire, $path );
+				break;
+		}
+	}
+
+	/**
+	 * clearVar.
+	 *
+	 * @version 3.1.8
+	 */
+	public static function clearVar( $name, $in = 'input', $params = array() ) {
+		if ( self::$_requestWithNonce ) {
+			$nonce = empty( $_REQUEST['_wpnonce'] ) ? '' : sanitize_text_field( wp_unslash( $_REQUEST['_wpnonce'] ) );
+			if ( ! wp_verify_nonce( $nonce, 'my-nonce' ) ) {
+				esc_html__( 'Security check', 'woo-product-filter' );
+				exit();
+			}
+		}
+		$in = strtolower( $in );
+		switch ( $in ) {
+			case 'get':
+				if ( isset( $_GET[ $name ] ) ) {
+					unset( $_GET[ $name ] );
+				}
+				break;
+			case 'post':
+				if ( isset( $_POST[ $name ] ) ) {
+					unset( $_POST[ $name ] );
+				}
+				break;
+			case 'session':
+				if ( isset( $_SESSION[ $name ] ) ) {
+					unset( $_SESSION[ $name ] );
+				}
+				break;
+			case 'cookie':
+				$path = isset( $params['path'] ) ? $params['path'] : '/';
+				setcookie( $name, '', time() - 3600, $path );
+				break;
+		}
+	}
+
+	/**
+	 * get.
+	 *
+	 * @version 3.3.0
+	 */
+	public static function get( $what ) {
+		if ( self::$_requestWithNonce ) {
+			$nonce = empty( $_REQUEST['_wpnonce'] ) ?
+				'' :
+				sanitize_text_field( wp_unslash( $_REQUEST['_wpnonce'] ) );
+
+			if ( ! wp_verify_nonce( $nonce, 'my-nonce' ) ) {
+				esc_html__( 'Security check', 'woo-product-filter' );
+				exit();
+			}
+		}
+		$what = strtolower( $what );
+		switch ( $what ) {
+			case 'get':
+				return map_deep( wp_unslash( $_GET ), 'sanitize_text_field' );
+			case 'post':
+				return map_deep( wp_unslash( $_POST ), 'sanitize_text_field' );
+			case 'session':
+				return map_deep( $_SESSION, 'sanitize_text_field' );
+			case 'files':
+				return self::sanitizeFiles( $_FILES );
+			default:
+				return null;
+		}
+	}
+
+	/**
+	 * sanitizeFiles.
+	 *
+	 * Sanitizes a $_FILES array: file names and MIME types are cleaned;
+	 * tmp_name is server-generated and left as-is.
+	 *
+	 * @version 3.4.0
+	 * @since   3.3.0
+	 *
+	 * @param array $files Raw $_FILES array.
+	 *
+	 * @return array
+	 */
+	private static function sanitizeFiles( $files ) {
+		// Single file.
+		if ( isset( $files['name'] ) && ! is_array( $files['name'] ) ) {
+			return array(
+				'name'     => isset( $files['name'] ) ? sanitize_file_name( $files['name'] ) : '',
+				'type'     => isset( $files['type'] ) ? sanitize_mime_type( $files['type'] ) : '',
+				'tmp_name' => isset( $files['tmp_name'] ) ? $files['tmp_name'] : '',
+				'size'     => isset( $files['size'] ) ? absint( $files['size'] ) : 0,
+				'error'    => isset( $files['error'] ) ? absint( $files['error'] ) : UPLOAD_ERR_NO_FILE,
+			);
+		}
+
+		// Multi-file input.
+		if ( isset( $files['name'] ) && is_array( $files['name'] ) ) {
+			$sanitized = array();
+			foreach ( array_keys( $files['name'] ) as $i ) {
+				$sanitized['name'][ $i ]     = sanitize_file_name( $files['name'][ $i ] );
+				$sanitized['type'][ $i ]     = sanitize_mime_type( $files['type'][ $i ] );
+				$sanitized['tmp_name'][ $i ] = $files['tmp_name'][ $i ];
+				$sanitized['size'][ $i ]     = absint( $files['size'][ $i ] );
+				$sanitized['error'][ $i ]    = absint( $files['error'][ $i ] );
+			}
+
+			return $sanitized;
+		}
+
+		// Nested field groups.
+		$sanitized = array();
+		foreach ( $files as $key => $value ) {
+			$sanitized[ $key ] = is_array( $value ) ? self::sanitizeFiles( $value ) : $value;
+		}
+
+		return $sanitized;
+	}
+
+	/**
+	 * getMethod.
+	 *
+	 * @version 3.1.8
+	 */
+	public static function getMethod() {
+		if ( ! self::$_requestMethod ) {
+			self::$_requestMethod = strtoupper(
+				self::getVar(
+					'method',
+					'all',
+					(
+					isset( $_SERVER['REQUEST_METHOD'] ) ?
+						sanitize_text_field( wp_unslash( $_SERVER['REQUEST_METHOD'] ) ) :
+						''
+					)
+				)
+			);
+		}
+
+		return self::$_requestMethod;
+	}
+
+	/**
+	 * getAdminPage.
+	 */
+	public static function getAdminPage() {
+		$pagePath = self::getVar( 'page' );
+		if (
+			! empty( $pagePath ) &&
+			strpos( $pagePath, '/' ) !== false
+		) {
+			$pagePath = explode( '/', $pagePath );
+
+			return str_replace(
+				'.php',
+				'',
+				$pagePath[ count( $pagePath ) - 1 ]
+			);
+		}
+
+		return false;
+	}
+
+	/**
+	 * getMethod.
+	 *
+	 * @version 3.1.8
+	 */
+	public static function getRequestUri() {
+		return (
+		isset( $_SERVER['REQUEST_URI'] ) ?
+			sanitize_text_field( wp_unslash( $_SERVER['REQUEST_URI'] ) ) :
+			''
+		);
+	}
+
+	/**
+	 * getMode.
+	 */
+	public static function getMode() {
+		$mod = self::getVar( 'mod' );
+		if ( ! $mod ) {
+			$mod = self::getVar( 'page' ); // Admin usage
+		}
+
+		return $mod;
+	}
+}

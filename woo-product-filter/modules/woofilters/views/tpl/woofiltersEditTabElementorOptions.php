@@ -2,58 +2,63 @@
 /**
  * Product Filter by WBW - Woofilters Edit Tab Elementor Options
  *
- * @version 3.1.7
+ * @version 3.4.0
  *
- * @author  woobewoo
+ * @author woobewoo
  */
 
 defined( 'ABSPATH' ) || exit;
 
-$isPro = FrameWpf::_()->isPro();
-$labelPro = '';
-if (!$isPro) {
-	$adPath = FrameWpf::_()->getModule('woofilters')->getModPath() . 'img/ad/';
-	$labelPro = ' Pro';
-}
+$labelPro = apply_filters( 'woobewoo_pf_pro_label', ' 5 Pro feature' ); // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound
 
-$formLink = FrameWpf::_()->getModule('options')->getTabUrl( FrameWpf::_()->getModule('woofilters')->getView()->getCode() );
+$formLink = WooBeWoo_PF_Frame::_()->getModule( 'options' )->getTabUrl( WooBeWoo_PF_Frame::_()->getModule( 'woofilters' )->getView()->getCode() ); // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound
 ?>
 
 <div class="woobewoo-plugin containerWrapperElementor" id="containerWrapperElementorOptions">
-	<form id="wpfFiltersEditForm" data-href="<?php echo esc_attr($formLink); ?>">
+	<form id="wpfFiltersEditForm" data-href="<?php echo esc_attr( $formLink ); ?>">
 		<?php
-		HtmlWpf::hidden('settings', array(
-			'value' => '',
-		));
+		WooBeWoo_PF_Html::hidden(
+			'settings',
+			array(
+				'value' => '',
+			)
+		);
 		?>
 		<div class="woobewoo_row">
 			<div class="col-md-12">
 				<div class="woobewoo-input-group" id="wpfChooseFiltersBlock" data-no-preview="1">
-					<?php HtmlWpf::hidden( 'title', array( 'value' => '' ) ); ?>
+					<?php WooBeWoo_PF_Html::hidden( 'title', array( 'value' => '' ) ); ?>
 				</div>
 			</div>
 		</div>
 		<div class="wpfMainTabsContainer">
 			<div class="woobewoo_row">
 				<div class="col-md-12 wpfFiltersTabContents">
-					<?php include 'woofiltersEditTabOptions.php'; ?>
+					<?php require 'woofiltersEditTabOptions.php'; ?>
 					<div class="wpfHidden">
-						<?php include 'woofiltersEditTabDesign.php'; ?>
+						<?php require 'woofiltersEditTabDesign.php'; ?>
 					</div>
 				</div>
 			</div>
 		</div>
 		<?php
-		HtmlWpf::hidden('settings[filters][order]', array(
-			'value' => '',
-		));
-		HtmlWpf::hidden('settings[filters][preselect]', array(
-			'value' => ''
-		));
+		WooBeWoo_PF_Html::hidden(
+			'settings[filters][order]',
+			array(
+				'value' => '',
+			)
+		);
+		WooBeWoo_PF_Html::hidden(
+			'settings[filters][preselect]',
+			array(
+				'value' => '',
+			)
+		);
 		?>
-		<?php HtmlWpf::hidden( 'mod', array( 'value' => 'woofilters' ) ); ?>
-		<?php HtmlWpf::hidden( 'action', array( 'value' => 'save' ) ); ?>
-		<?php HtmlWpf::hidden( 'id', array( 'value' => '' ) ); ?>
+		<?php WooBeWoo_PF_Html::hidden( 'mod', array( 'value' => 'woofilters' ) ); ?>
+		<?php WooBeWoo_PF_Html::hidden( 'action', array( 'value' => 'woobewoo_pf_save' ) ); ?>
+		<?php WooBeWoo_PF_Html::hidden( 'id', array( 'value' => '' ) ); ?>
 	</form>
 	<div class="woobewoo-clear"></div>
 </div>
+<?php

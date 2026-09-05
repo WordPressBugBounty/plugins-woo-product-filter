@@ -3,81 +3,89 @@
  * Plugin Name: Product Filter for WooCommerce by WBW
  * Plugin URI: https://woobewoo.com/product/woocommerce-filter/
  * Description: Filter products in your store in most efficient way
- * Version: 3.1.7
+ * Version: 3.4.2
  * Author: woobewoo
  * Author URI: https://woobewoo.com/
- * Requires at least: 3.4.0
+ * Requires at least: 5.0
  * Text Domain: woo-product-filter
  * Domain Path: /languages
- * WC requires at least: 3.4.1
- * WC tested up to: 10.7
+ * WC tested up to: 11.0
  * Requires Plugins: woocommerce
- **/
+ * License: GPLv2 or later
+ * License URI: https://www.gnu.org/licenses/gpl-2.0.html
+ */
 
 defined( 'ABSPATH' ) || exit;
 
 /**
  * Base config constants and functions.
+ *
+ * @version 3.3.0
  */
-require_once dirname(__FILE__) . DIRECTORY_SEPARATOR . 'config.php';
-require_once dirname(__FILE__) . DIRECTORY_SEPARATOR . 'functions.php';
+require_once __DIR__ . DIRECTORY_SEPARATOR . 'config.php';
+require_once __DIR__ . DIRECTORY_SEPARATOR . 'functions.php';
 
 /**
  * HPOS.
  */
-add_action( 'before_woocommerce_init', function () {
-	if ( class_exists( \Automattic\WooCommerce\Utilities\FeaturesUtil::class ) ) {
-		\Automattic\WooCommerce\Utilities\FeaturesUtil::declare_compatibility( 'custom_order_tables', __FILE__, true );
+add_action(
+	'before_woocommerce_init',
+	function () {
+		if ( class_exists( \Automattic\WooCommerce\Utilities\FeaturesUtil::class ) ) {
+			\Automattic\WooCommerce\Utilities\FeaturesUtil::declare_compatibility( 'custom_order_tables', __FILE__, true );
+		}
 	}
-} );
+);
 
 /**
  * Connect all required core classes.
+ *
+ * @version 3.4.0
  */
-if ( trueRequestWpf() ) {
+if ( woobewoo_pf_request() ) {
 
-	importClassWpf( 'DbWpf' );
-	importClassWpf( 'InstallerWpf' );
-	importClassWpf( 'BaseObjectWpf' );
-	importClassWpf( 'ModuleWpf' );
-	importClassWpf( 'ModelWpf' );
-	importClassWpf( 'ViewWpf' );
-	importClassWpf( 'ControllerWpf' );
-	importClassWpf( 'HelperWpf' );
-	importClassWpf( 'DispatcherWpf' );
-	importClassWpf( 'FieldWpf' );
-	importClassWpf( 'TableWpf' );
-	importClassWpf( 'FrameWpf' );
+	woobewoo_pf_import_class( 'WooBeWoo_PF_Db' );
+	woobewoo_pf_import_class( 'WooBeWoo_PF_Installer' );
+	woobewoo_pf_import_class( 'WooBeWoo_PF_Base_Object' );
+	woobewoo_pf_import_class( 'WooBeWoo_PF_Module' );
+	woobewoo_pf_import_class( 'WooBeWoo_PF_Model' );
+	woobewoo_pf_import_class( 'WooBeWoo_PF_View' );
+	woobewoo_pf_import_class( 'WooBeWoo_PF_Controller' );
+	woobewoo_pf_import_class( 'WooBeWoo_PF_Helper' );
+	woobewoo_pf_import_class( 'WooBeWoo_PF_Dispatcher' );
+	woobewoo_pf_import_class( 'WooBeWoo_PF_Field' );
+	woobewoo_pf_import_class( 'WooBeWoo_PF_Table' );
+	woobewoo_pf_import_class( 'WooBeWoo_PF_Frame' );
 
 	/**
 	 * Deprecated classes.
 	 *
 	 * @deprecated since version 1.0.1
 	 */
-	importClassWpf( 'LangWpf' );
-	importClassWpf( 'ReqWpf' );
-	importClassWpf( 'UriWpf' );
-	importClassWpf( 'HtmlWpf' );
-	importClassWpf( 'ResponseWpf' );
-	importClassWpf( 'FieldAdapterWpf' );
-	importClassWpf( 'ValidatorWpf' );
-	importClassWpf( 'ErrorsWpf' );
-	importClassWpf( 'UtilsWpf' );
-	importClassWpf( 'ModInstallerWpf' );
-	importClassWpf( 'InstallerDbUpdaterWpf' );
-	importClassWpf( 'DateWpf' );
+	woobewoo_pf_import_class( 'WooBeWoo_PF_Lang' );
+	woobewoo_pf_import_class( 'WooBeWoo_PF_Req' );
+	woobewoo_pf_import_class( 'WooBeWoo_PF_Uri' );
+	woobewoo_pf_import_class( 'WooBeWoo_PF_Html' );
+	woobewoo_pf_import_class( 'WooBeWoo_PF_Response' );
+	woobewoo_pf_import_class( 'WooBeWoo_PF_Field_Adapter' );
+	woobewoo_pf_import_class( 'WooBeWoo_PF_Validator' );
+	woobewoo_pf_import_class( 'WooBeWoo_PF_Errors' );
+	woobewoo_pf_import_class( 'WooBeWoo_PF_Utils' );
+	woobewoo_pf_import_class( 'WooBeWoo_PF_Mod_Installer' );
+	woobewoo_pf_import_class( 'WooBeWoo_PF_Installer_Db_Updater' );
+	woobewoo_pf_import_class( 'WooBeWoo_PF_Date' );
 
 	/**
 	 * Check plugin version - maybe we need to update database, and check global errors in request.
 	 */
-	InstallerWpf::update();
-	ErrorsWpf::init();
+	WooBeWoo_PF_Installer::update();
+	WooBeWoo_PF_Errors::init();
 
 	/**
 	 * Start application.
 	 */
-	FrameWpf::_()->parseRoute();
-	FrameWpf::_()->init();
-	FrameWpf::_()->exec();
+	WooBeWoo_PF_Frame::_()->parseRoute();
+	WooBeWoo_PF_Frame::_()->init();
+	WooBeWoo_PF_Frame::_()->exec();
 
 }

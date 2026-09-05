@@ -1,0 +1,767 @@
+<?php
+/**
+ * Product Filter by WBW - WooBeWoo_PF_Frame Class
+ *
+ * @version 3.4.0
+ *
+ * @author woobewoo
+ */
+
+defined( 'ABSPATH' ) || exit;
+
+class WooBeWoo_PF_Frame {
+
+	private $_modules    = array();
+	private $_tables     = array();
+	private $_allModules = array();
+
+	/**
+	 * Uses to know if we are on one of the plugin pages.
+	 */
+	private $_inPlugin = false;
+
+	/**
+	 * Array to hold all scripts and add them in one time in addScripts method.
+	 */
+	private $_scripts            = array();
+	private $_scriptsInitialized = false;
+	private $_styles             = array();
+	private $_stylesInitialized  = false;
+	private $_useFootAssets      = false;
+
+	private $_scriptsVars = array();
+	private $_mod         = '';
+	private $_action      = '';
+	private $_proVersion  = null;
+
+	/**
+	 * Object with result of executing non-ajax module request.
+	 */
+	private $_res = null;
+
+	/**
+	 * Constructor.
+	 *
+	 * @version 3.4.0
+	 */
+	public function __construct() {
+		$this->_res = woobewoo_pf_toe_create_obj( 'response', array() );
+	}
+
+	/**
+	 * getInstance.
+	 *
+	 * @version 3.4.0
+	 */
+	public static function getInstance() {
+		static $instance;
+		if ( ! $instance ) {
+			$instance = new WooBeWoo_PF_Frame();
+		}
+
+		return $instance;
+	}
+
+	/**
+	 * self::getInstance.
+	 */
+	public static function _() {
+		return self::getInstance();
+	}
+
+	/**
+	 * parseRoute.
+	 *
+	 * @version 3.4.0
+	 */
+	public function parseRoute() {
+		// Check plugin
+		$pl = WooBeWoo_PF_Req::getVar( 'pl' );
+		if ( WPF_CODE == $pl ) {
+			$mod = WooBeWoo_PF_Req::getMode();
+			if ( $mod ) {
+				$this->_mod = $mod;
+			}
+			$action = WooBeWoo_PF_Req::getVar( 'action' );
+			if ( $action ) {
+				$this->_action = $action;
+			}
+		}
+	}
+
+	/**
+	 * setMod.
+	 */
+	public function setMod( $mod ) {
+		$this->_mod = $mod;
+	}
+
+	/**
+	 * getMod.
+	 */
+	public function getMod() {
+		return $this->_mod;
+	}
+
+	/**
+	 * setAction.
+	 */
+	public function setAction( $action ) {
+		$this->_action = $action;
+	}
+
+	/**
+	 * getAction.
+	 */
+	public function getAction() {
+		return $this->_action;
+	}
+
+	/**
+	 * _extractModules.
+	 *
+	 * @version 3.4.0
+	 */
+	protected function _extractModules() {
+		$activeModules = $this->getTable( 'modules' )
+			->innerJoin( $this->getTable( 'modules_type' ), 'type_id' )
+			->get( $this->getTable( 'modules' )->alias() . '.*, ' . $this->getTable( 'modules_type' )->alias() . '.label as type_name' );
+		if ( $activeModules ) {
+			foreach ( $activeModules as $m ) {
+				$code              = $m['code'];
+				$moduleLocationDir = WPF_MODULES_DIR;
+				if ( ! empty( $m['ex_plug_dir'] ) ) {
+					$moduleLocationDir = WooBeWoo_PF_Utils::getExtModDir( $m['ex_plug_dir'] );
+				}
+				if ( is_dir( $moduleLocationDir . $code ) ) {
+					$this->_allModules[ $m['code'] ] = 1;
+					if ( (bool) $m['active'] ) {
+						$mod_class_name = WPF_CLASS_PREFIX . ucwords( $code );
+						if ( ! class_exists( $mod_class_name ) ) {
+							$mod_class_file     = strtolower( str_replace( '_', '-', $mod_class_name ) ) . '.php';
+							$mod_class_location = $moduleLocationDir . $code . WPF_DS . 'class-' . $mod_class_file;
+
+							if ( file_exists( $mod_class_location ) ) {
+								require $mod_class_location;
+							}
+						}
+
+						$moduleClass = woobewoo_pf_toe_get_class_name( $code );
+						if ( class_exists( $moduleClass ) ) {
+							$this->_modules[ $code ] = new $moduleClass( $m );
+							if ( is_dir( $moduleLocationDir . $code . WPF_DS . 'tables' ) ) {
+								$this->_extractTables( $moduleLocationDir . $code . WPF_DS . 'tables' . WPF_DS );
+							}
+						}
+					}
+				}
+			}
+			if ( isset( $this->_modules['templates'] ) ) {
+				$m = $this->_modules['templates'];
+				unset( $this->_modules['templates'] );
+				$this->_modules['templates'] = $m;
+			}
+		}
+	}
+
+	/**
+	 * _initModules.
+	 */
+	protected function _initModules() {
+		if ( ! empty( $this->_modules ) ) {
+			foreach ( $this->_modules as $mod ) {
+				$mod->init();
+			}
+		}
+	}
+
+	/**
+	 * init.
+	 *
+	 * @version 3.4.0
+	 */
+	public function init() {
+		$this->_extractTables();
+		$this->_extractModules();
+
+		$this->_initModules();
+
+		WooBeWoo_PF_Dispatcher::doAction( 'afterModulesInit' );
+
+		WooBeWoo_PF_Mod_Installer::checkActivationMessages();
+
+		$this->_execModules();
+
+		$addAssetsAction = $this->usePackAssets() && ! is_admin() ? 'wp_footer' : 'init';
+
+		add_action( $addAssetsAction, array( $this, 'addScripts' ) );
+		add_action( $addAssetsAction, array( $this, 'addStyles' ) );
+
+		register_activation_hook( WPF_DIR . WPF_DS . WPF_MAIN_FILE, array(
+			'WooBeWoo_PF_Utils',
+			'activatePlugin'
+		) ); // See classes/install.php file
+		register_uninstall_hook( WPF_DIR . WPF_DS . WPF_MAIN_FILE, array( 'WooBeWoo_PF_Utils', 'deletePlugin' ) );
+		register_deactivation_hook( WPF_DIR . WPF_DS . WPF_MAIN_FILE, array(
+			'WooBeWoo_PF_Utils',
+			'deactivatePlugin'
+		) );
+
+		add_filter( 'the_content', array( 'WooBeWoo_PF_Woofilters', 'getProductsShortcode' ), - 99999 );
+	}
+
+	/**
+	 * Check permissions for action in controller by $code and made corresponding action.
+	 *
+	 * @version 3.1.3
+	 *
+	 * @param string $code   Code of controller that need to be checked
+	 * @param string $action Action that need to be checked
+	 *
+	 * @return bool true if ok, else - should exit from application
+	 */
+	public function checkPermissions( $code, $action ) {
+		if ( $this->havePermissions( $code, $action ) ) {
+			return true;
+		} else {
+			wp_send_json_error(
+				array( 'message' => esc_html__( 'You have no permissions to view this page', 'woo-product-filter' ) ),
+				403
+			);
+		}
+	}
+
+	/**
+	 * Check permissions for action in controller by $code.
+	 *
+	 * @version 3.4.0
+	 *
+	 * @param string $code   Code of controller that need to be checked
+	 * @param string $action Action that need to be checked
+	 *
+	 * @return bool true if ok, else - false
+	 */
+	public function havePermissions( $code, $action ) {
+		$res    = false;
+		$mod    = $this->getModule( $code );
+		$action = strtolower( $action );
+		if ( $mod ) {
+			$permissions = $mod->getController()->getPermissions();
+			if ( ! empty( $permissions ) ) { // Special permissions
+				if ( isset( $permissions[ WPF_METHODS ] ) && ! empty( $permissions[ WPF_METHODS ] ) ) {
+					foreach ( $permissions[ WPF_METHODS ] as $method => $permission ) { // Make case-insensitive
+						$permissions[ WPF_METHODS ][ strtolower( $method ) ] = $permission;
+					}
+					if ( array_key_exists( $action, $permissions[ WPF_METHODS ] ) ) { // Permission for this method exists
+						$currentUserPosition = self::_()->getModule( 'user' )->getCurrentUserPosition();
+						if (
+							is_array( $permissions[ WPF_METHODS ][ $action ] ) &&
+							(
+								in_array( $currentUserPosition, $permissions[ WPF_METHODS ][ $action ] ) ||
+								$permissions[ WPF_METHODS ][ $action ] === $currentUserPosition
+							)
+						) {
+							$res = true;
+						}
+					}
+				}
+				if ( isset( $permissions[ WPF_USERLEVELS ] ) && ! empty( $permissions[ WPF_USERLEVELS ] ) ) {
+					$currentUserPosition = self::_()->getModule( 'user' )->getCurrentUserPosition();
+					// For multi-sites network admin role is undefined, let's do this here
+					if ( is_multisite() && is_admin() && is_super_admin() ) {
+						$currentUserPosition = WPF_ADMIN;
+					}
+					foreach ( $permissions[ WPF_USERLEVELS ] as $userlevel => $methods ) {
+						if ( is_array( $methods ) ) {
+							$lowerMethods = array_map( 'strtolower', $methods ); // Make case-insensitive
+							if ( in_array( $action, $lowerMethods ) ) { // Permission for this method exists
+								if ( $currentUserPosition === $userlevel ) {
+									$res = true;
+								}
+								break;
+							}
+						} else {
+							$lowerMethod = strtolower( $methods ); // Make case-insensitive
+							if ( $lowerMethod == $action ) { // Permission for this method exists
+								if ( $currentUserPosition === $userlevel ) {
+									$res = true;
+								}
+								break;
+							}
+						}
+					}
+				}
+			}
+
+			if ( $res ) { // Additional check for nonce
+				$noncedMethods = $mod->getController()->getNoncedMethods();
+				if ( ! empty( $noncedMethods ) ) {
+					$noncedMethods = array_map( 'strtolower', $noncedMethods );
+					if ( in_array( $action, $noncedMethods ) ) {
+						$nonce = ( isset( $_REQUEST['_wpnonce'] ) ?
+							sanitize_text_field( wp_unslash( $_REQUEST['_wpnonce'] ) ) :
+							WooBeWoo_PF_Req::getVar( '_wpnonce' )
+						);
+
+						if ( ! wp_verify_nonce( $nonce, $action ) ) {
+							die();
+						}
+					}
+				}
+			}
+		}
+
+		return $res;
+	}
+
+	/**
+	 * getRes.
+	 */
+	public function getRes() {
+		return $this->_res;
+	}
+
+	/**
+	 * execAfterWpInit.
+	 */
+	public function execAfterWpInit() {
+		$this->_doExec();
+	}
+
+	/**
+	 * Check if method for module require some special permission. We can detect users permissions only after wp init action was done.
+	 *
+	 * @version 3.1.8
+	 */
+	protected function _execOnlyAfterWpInit() {
+		$res    = false;
+		$mod    = $this->getModule( $this->_mod );
+		$action = strtolower( $this->_action );
+		if ( $mod ) {
+			$permissions = $mod->getController()->getPermissions();
+			if ( ! empty( $permissions ) ) { // Special permissions
+				if ( ! empty( $permissions[ WPF_METHODS ] ) ) {
+					foreach ( $permissions[ WPF_METHODS ] as $method => $permissionValue ) { // Make case-insensitive
+						$permissions[ WPF_METHODS ][ strtolower( $method ) ] = $permissionValue;
+					}
+					if ( array_key_exists( $action, $permissions[ WPF_METHODS ] ) ) { // Permission for this method exists
+						$res = true;
+					}
+				}
+				if ( isset( $permissions[ WPF_USERLEVELS ] ) && ! empty( $permissions[ WPF_USERLEVELS ] ) ) {
+					$res = true;
+				}
+			}
+		}
+
+		return $res;
+	}
+
+	/**
+	 * _execModules.
+	 */
+	protected function _execModules() {
+		if ( $this->_mod ) {
+			// If module exist and is active
+			$mod = $this->getModule( $this->_mod );
+			if ( $mod && ! empty( $this->_action ) ) {
+				if ( $this->_execOnlyAfterWpInit() ) {
+					add_action( 'init', array( $this, 'execAfterWpInit' ) );
+				} else {
+					$this->_doExec();
+				}
+			}
+		}
+	}
+
+	/**
+	 * _doExec.
+	 *
+	 * @version 3.4.0
+	 */
+	protected function _doExec() {
+		$mod = $this->getModule( $this->_mod );
+		if ( $mod && $this->checkPermissions( $this->_mod, $this->_action ) ) {
+			switch ( WooBeWoo_PF_Req::getVar( 'reqType' ) ) {
+				case 'ajax':
+					add_action( 'wp_ajax_' . $this->_action, array( $mod->getController(), $this->_action ) );
+					$noprivActions = array( 'woobewoo_pf_filters_frontend', 'saveStatistics' );
+
+					if ( in_array( $this->_action, $noprivActions ) ) {
+						add_action(
+							'wp_ajax_nopriv_' . $this->_action,
+							array( $mod->getController(), $this->_action )
+						);
+					}
+					break;
+				default:
+					$this->_res = $mod->exec( $this->_action );
+					break;
+			}
+		}
+	}
+
+	/**
+	 * _extractTables.
+	 */
+	protected function _extractTables( $tablesDir = WPF_TABLES_DIR ) {
+		$mDirHandle = opendir( $tablesDir );
+		while ( ( $file = readdir( $mDirHandle ) ) !== false ) {
+			if ( is_file( $tablesDir . $file ) && ( '.' != $file ) && ( '..' != $file ) && strpos( $file, '.php' ) ) {
+				$this->_extractTable( str_replace( '.php', '', $file ), $tablesDir );
+			}
+		}
+	}
+
+	/**
+	 * _extractTable.
+	 *
+	 * @version 3.4.0
+	 */
+	protected function _extractTable( $tableName, $tablesDir = WPF_TABLES_DIR ) {
+		if ( ! class_exists( 'noClassNameHere' ) ) {
+			if ( file_exists( $tablesDir . $tableName . '.php' ) ) {
+				require $tablesDir . $tableName . '.php';
+			}
+		}
+		$tableName = str_replace( 'class-woobewoo-pf-', '', $tableName );
+		$tableName = str_replace( '-table', '', $tableName );
+		$tableName = str_replace( '-', '_', $tableName );
+		$this->_tables[ $tableName ] = WooBeWoo_PF_Table::_( $tableName );
+	}
+
+	/**
+	 * Public alias for _extractTables method.
+	 *
+	 * @see _extractTables
+	 */
+	public function extractTables( $tablesDir ) {
+		if ( ! empty( $tablesDir ) ) {
+			$this->_extractTables( $tablesDir );
+		}
+	}
+
+	/**
+	 * exec.
+	 */
+	public function exec() {
+		// deprecated
+	}
+
+	/**
+	 * getTables.
+	 */
+	public function getTables() {
+		return $this->_tables;
+	}
+
+	/**
+	 * Return table by name.
+	 *
+	 * @version 3.4.0
+	 *
+	 * @param string $tableName table name in database
+	 *
+	 * @return object table
+	 * @example WooBeWoo_PF_Frame::_()->getTable('products')->getAll()
+	 */
+	public function getTable( $tableName ) {
+		if ( empty( $this->_tables[ $tableName ] ) ) {
+			$this->_extractTable( $tableName );
+		}
+
+		return $this->_tables[ $tableName ];
+	}
+
+	/**
+	 * getModules.
+	 */
+	public function getModules( $filter = array() ) {
+		$res = array();
+		if ( empty( $filter ) ) {
+			$res = $this->_modules;
+		} else {
+			foreach ( $this->_modules as $code => $mod ) {
+				if ( isset( $filter['type'] ) ) {
+					if ( is_numeric( $filter['type'] ) && $filter['type'] == $mod->getTypeID() ) {
+						$res[ $code ] = $mod;
+					} elseif ( $filter['type'] == $mod->getType() ) {
+						$res[ $code ] = $mod;
+					}
+				}
+			}
+		}
+
+		return $res;
+	}
+
+	/**
+	 * getModule.
+	 */
+	public function getModule( $code ) {
+		return ( isset( $this->_modules[ $code ] ) ? $this->_modules[ $code ] : null );
+	}
+
+	/**
+	 * inPlugin.
+	 */
+	public function inPlugin() {
+		return $this->_inPlugin;
+	}
+
+	/**
+	 * usePackAssets.
+	 */
+	public function usePackAssets() {
+		if ( ! $this->_useFootAssets && $this->getModule( 'options' ) && $this->getModule( 'options' )->get( 'foot_assets' ) ) {
+			$this->_useFootAssets = true;
+		}
+
+		return $this->_useFootAssets;
+	}
+
+	/**
+	 * Push data to script array to use it all in addScripts method.
+	 *
+	 * @version 3.4.0
+	 *
+	 * @see     wp_enqueue_script definition
+	 */
+	public function addScript( $handle, $src = '', $deps = array(), $ver = false, $in_footer = false, $vars = array() ) {
+		$src = empty( $src ) ? $src : WooBeWoo_PF_Uri::_( $src );
+		if ( ! $ver ) {
+			$ver = WPF_VERSION;
+		}
+		if ( $this->_scriptsInitialized ) {
+			wp_enqueue_script( $handle, $src, $deps, $ver, $in_footer );
+		} else {
+			$this->_scripts[] = array(
+				'handle'    => $handle,
+				'src'       => $src,
+				'deps'      => $deps,
+				'ver'       => $ver,
+				'in_footer' => $in_footer,
+				'vars'      => $vars,
+			);
+		}
+	}
+
+	/**
+	 * Add all scripts from _scripts array to WordPress.
+	 *
+	 * @version 3.3.0
+	 */
+	public function addScripts() {
+		if ( ! empty( $this->_scripts ) ) {
+			foreach ( $this->_scripts as $s ) {
+				if ( ! function_exists( 'is_plugin_active' ) ) {
+					require_once ABSPATH . 'wp-admin/includes/plugin.php';
+				}
+
+				$enqueue = true;
+
+				// if the oxygen plugin is activated then check if the script is already registered
+				if ( is_plugin_active( 'oxygen/functions.php' ) && 'woobewoo-pf-jquery-ui-autocomplete' === $s['handle'] ) {
+					$wp_scripts = wp_scripts();
+					if ( isset( $wp_scripts->registered[ $s['handle'] ] ) ) {
+						$enqueue = false;
+					}
+				}
+
+				if ( $enqueue ) {
+					wp_enqueue_script( $s['handle'], $s['src'], $s['deps'], $s['ver'], $s['in_footer'] );
+				}
+
+				if ( $s['vars'] || isset( $this->_scriptsVars[ $s['handle'] ] ) ) {
+					$vars = array();
+					if ( $s['vars'] ) {
+						$vars = $s['vars'];
+					}
+					if ( $this->_scriptsVars[ $s['handle'] ] ) {
+						$vars = array_merge( $vars, $this->_scriptsVars[ $s['handle'] ] );
+					}
+					if ( $vars ) {
+						foreach ( $vars as $k => $v ) {
+							if ( is_array( $v ) ) {
+								wp_localize_script( $s['handle'], $k, $v );
+							}
+						}
+					}
+				}
+			}
+		}
+		$this->_scriptsInitialized = true;
+	}
+
+	/**
+	 * addJSVar.
+	 *
+	 * @version 3.3.0
+	 */
+	public function addJSVar( $script, $name, $val ) {
+		if ( $this->_scriptsInitialized ) {
+			if ( is_array( $val ) ) {
+				wp_localize_script( $script, $name, $val );
+			} else {
+				$code = "var {$name} = " . wp_json_encode( $val ) . ';';
+				wp_add_inline_script( $script, $code, 'before' );
+			}
+		} else {
+			$this->_scriptsVars[ $script ][ $name ] = $val;
+		}
+	}
+
+	/**
+	 * addStyle.
+	 *
+	 * @version 3.4.0
+	 */
+	public function addStyle( $handle, $src = false, $deps = array(), $ver = false, $media = 'all' ) {
+		$src = empty( $src ) ? $src : WooBeWoo_PF_Uri::_( $src );
+		if ( ! $ver ) {
+			$ver = WPF_VERSION;
+		}
+		if ( $this->_stylesInitialized ) {
+			wp_enqueue_style( $handle, $src, $deps, $ver, $media );
+		} else {
+			$this->_styles[] = array(
+				'handle' => $handle,
+				'src'    => $src,
+				'deps'   => $deps,
+				'ver'    => $ver,
+				'media'  => $media,
+			);
+		}
+	}
+
+	/**
+	 * addStyles.
+	 */
+	public function addStyles() {
+		if ( ! empty( $this->_styles ) ) {
+			foreach ( $this->_styles as $s ) {
+				wp_enqueue_style( $s['handle'], $s['src'], $s['deps'], $s['ver'], $s['media'] );
+			}
+		}
+		$this->_stylesInitialized = true;
+	}
+
+	/**
+	 * moduleActive.
+	 */
+	public function moduleActive( $code ) {
+		return isset( $this->_modules[ $code ] );
+	}
+
+	/**
+	 * moduleExists.
+	 */
+	public function moduleExists( $code ) {
+		if ( $this->moduleActive( $code ) ) {
+			return true;
+		}
+
+		return isset( $this->_allModules[ $code ] );
+	}
+
+	/**
+	 * isTplEditor.
+	 *
+	 * @version 3.4.0
+	 */
+	public function isTplEditor() {
+		$tplEditor = WooBeWoo_PF_Req::getVar( 'tplEditor' );
+
+		return (bool) $tplEditor;
+	}
+
+	/**
+	 * This is custom method for each plugin and should be modified if you create copy from this instance.
+	 *
+	 * @version 3.4.0
+	 */
+	public function isAdminPlugOptsPage() {
+		$page = WooBeWoo_PF_Req::getVar( 'page' );
+		if (
+			is_admin() &&
+			! empty( $page ) &&
+			is_string( $page ) &&
+			strpos( $page, self::_()->getModule( 'adminmenu' )->getMainSlug() ) !== false
+		) {
+			return true;
+		}
+
+		return false;
+	}
+
+	/**
+	 * isAdminPlugPage.
+	 */
+	public function isAdminPlugPage() {
+		if ( $this->isAdminPlugOptsPage() ) {
+			return true;
+		}
+
+		return false;
+	}
+
+	/**
+	 * licenseDeactivated.
+	 */
+	public function licenseDeactivated() {
+		return ( ! $this->getModule( 'license' ) && $this->moduleExists( 'license' ) );
+	}
+
+	/**
+	 * savePluginActivationErrors.
+	 */
+	public function savePluginActivationErrors() {
+		update_option( WPF_CODE . '_plugin_activation_errors', ob_get_contents() );
+	}
+
+	/**
+	 * getActivationErrors.
+	 */
+	public function getActivationErrors() {
+		return get_option( WPF_CODE . '_plugin_activation_errors' );
+	}
+
+	/**
+	 * isPro.
+	 *
+	 * @version 3.3.0
+	 */
+	public function isPro() {
+		return apply_filters( 'woobewoo_pf_is_pro', false );
+	}
+
+	/**
+	 * proVersionCompare.
+	 *
+	 * @version 3.3.0
+	 */
+	public function proVersionCompare( $requires, $compare = '>', $notPro = true ) {
+		if ( is_null( $this->_proVersion ) ) {
+			if ( $this->isPro() && function_exists( 'getProPlugFullPathWpf' ) ) {
+				$plugin_data       = get_file_data( getProPlugFullPathWpf(), array( 'Version' => 'Version' ) );
+				$this->_proVersion = $plugin_data['Version'];
+			} else {
+				$this->_proVersion = false;
+			}
+		}
+
+		return ( ( $notPro && false === $this->_proVersion ) || version_compare( $this->_proVersion, $requires, $compare ) );
+	}
+
+	/**
+	 * isWCLicense.
+	 */
+	public function isWCLicense() {
+		return (
+			$this->moduleExists( 'license' ) &&
+			$this->getModule( 'license' ) &&
+			isset( $this->getModule( 'license' )->isWooLicense ) &&
+			$this->getModule( 'license' )->isWooLicense
+		);
+	}
+}

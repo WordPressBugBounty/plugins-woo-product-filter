@@ -2,65 +2,64 @@
 /**
  * Product Filter by WBW - Woofilters Edit Tab Elementor Filters
  *
- * @version 3.1.7
+ * @version 3.4.0
  *
- * @author  woobewoo
+ * @author woobewoo
  */
 
 defined( 'ABSPATH' ) || exit;
 
-$isPro = FrameWpf::_()->isPro();
-$labelPro = '';
-if (!$isPro) {
-	$adPath = FrameWpf::_()->getModule('woofilters')->getModPath() . 'img/ad/';
-	$labelPro = ' Pro';
-}
+// phpcs:disable WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound
+$labelPro = apply_filters( 'woobewoo_pf_pro_label', ' - Pro feature' );
 
-list($categoryDisplay, $parentCategories) = FrameWpf::_()->getModule('woofilters')->getCategoriesDisplay();
+list($categoryDisplay, $parentCategories) = WooBeWoo_PF_Frame::_()->getModule( 'woofilters' )->getCategoriesDisplay();
 
-list($tagsDisplay) = FrameWpf::_()->getModule('woofilters')->getTagsDisplay();
+list($tagsDisplay) = WooBeWoo_PF_Frame::_()->getModule( 'woofilters' )->getTagsDisplay();
 
-list($attrDisplay, $attrTypes, $attrNames) = FrameWpf::_()->getModule('woofilters')->getAttributesDisplay();
+list($attrDisplay, $attrTypes, $attrNames) = WooBeWoo_PF_Frame::_()->getModule( 'woofilters' )->getAttributesDisplay();
 
-list($roles) = FrameWpf::_()->getModule('woofilters')->getRolesDisplay();
+list($roles) = WooBeWoo_PF_Frame::_()->getModule( 'woofilters' )->getRolesDisplay();
 
 $wpfBrand = array(
-	'exist' => taxonomy_exists('product_brand')
+	'exist' => taxonomy_exists( 'product_brand' ),
 );
 
-$catArgs = array(
-	'taxonomy' => 'pwb-brand',
-	'orderby' => 'name',
-	'order' => 'asc',
+$catArgs      = array(
+	'taxonomy'   => 'pwb-brand',
+	'orderby'    => 'name',
+	'order'      => 'asc',
 	'hide_empty' => false,
 );
 $brandDisplay = array();
 $parentBrands = array();
-if (taxonomy_exists('pwb-brand')) {
+if ( taxonomy_exists( 'pwb-brand' ) ) {
 	$productBrands = get_terms( $catArgs );
-	foreach ($productBrands as $c) {
-		if (0 == $c->parent) {
-			array_push($parentBrands, $c->term_id);
+	foreach ( $productBrands as $c ) {
+		if ( 0 == $c->parent ) {
+			array_push( $parentBrands, $c->term_id );
 		}
-		$brandDisplay[$c->term_id] = $c->name;
+		$brandDisplay[ $c->term_id ] = $c->name;
 	}
 }
 
-$formLink = FrameWpf::_()->getModule('options')->getTabUrl( FrameWpf::_()->getModule('woofilters')->getView()->getCode() );
+$formLink = WooBeWoo_PF_Frame::_()->getModule( 'options' )->getTabUrl( WooBeWoo_PF_Frame::_()->getModule( 'woofilters' )->getView()->getCode() );
 ?>
 
 <div class="woobewoo-plugin" id="containerWrapperElementor">
-	<form id="wpfFiltersEditForm" data-href="<?php echo esc_attr($formLink); ?>">
+	<form id="wpfFiltersEditForm" data-href="<?php echo esc_attr( $formLink ); ?>">
 		<div class="woobewoo_row">
 			<div class="col-md-12">
 				<div class="woobewoo-input-group" id="wpfChooseFiltersBlock" data-no-preview="1">
 					<div class="woobewoo-group-label">
-						<?php echo esc_html__('Filter name:', 'woo-product-filter'); ?>
+						<?php echo esc_html__( 'Filter name:', 'woo-product-filter' ); ?>
 					</div>
 					<?php
-					HtmlWpf::text('title', array(
-						'value' => '',
-					));
+					WooBeWoo_PF_Html::text(
+						'title',
+						array(
+							'value' => '',
+						)
+					);
 					?>
 				</div>
 			</div>
@@ -68,29 +67,43 @@ $formLink = FrameWpf::_()->getModule('options')->getTabUrl( FrameWpf::_()->getMo
 		<div class="wpfMainTabsContainer">
 			<div class="woobewoo_row">
 				<div class="col-md-12 wpfFiltersTabContents">
-					<?php include_once 'woofiltersEditTabFilters.php'; ?>
+					<?php require_once 'woofiltersEditTabFilters.php'; ?>
 				</div>
 			</div>
 		</div>
 		<?php
-		HtmlWpf::hidden('settings', array(
-			'value' => '',
-		));
-		HtmlWpf::hidden('settings[filters][order]', array(
-			'value' => '',
-		));
-		HtmlWpf::hidden('settings[filters][preselect]', array(
-			'value' => ''
-		));
-		HtmlWpf::hidden('esettings', array(
-			'value' => ''
-		));
+		WooBeWoo_PF_Html::hidden(
+			'settings',
+			array(
+				'value' => '',
+			)
+		);
+		WooBeWoo_PF_Html::hidden(
+			'settings[filters][order]',
+			array(
+				'value' => '',
+			)
+		);
+		WooBeWoo_PF_Html::hidden(
+			'settings[filters][preselect]',
+			array(
+				'value' => '',
+			)
+		);
+		WooBeWoo_PF_Html::hidden(
+			'esettings',
+			array(
+				'value' => '',
+			)
+		);
 		?>
 
 
-		<?php HtmlWpf::hidden( 'mod', array( 'value' => 'woofilters' ) ); ?>
-		<?php HtmlWpf::hidden( 'action', array( 'value' => 'save' ) ); ?>
-		<?php HtmlWpf::hidden( 'id', array( 'value' => '' ) ); ?>
+		<?php WooBeWoo_PF_Html::hidden( 'mod', array( 'value' => 'woofilters' ) ); ?>
+		<?php WooBeWoo_PF_Html::hidden( 'action', array( 'value' => 'woobewoo_pf_save' ) ); ?>
+		<?php WooBeWoo_PF_Html::hidden( 'id', array( 'value' => '' ) ); ?>
 	</form>
 	<div class="woobewoo-clear"></div>
 </div>
+<?php
+// phpcs:enable WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound
