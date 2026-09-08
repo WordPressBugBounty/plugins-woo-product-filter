@@ -1,7 +1,7 @@
 /**
  * Product Filter by WBW - Admin Beautify Design CSS
  *
- * @version 3.4.0
+ * @version 3.4.3
  * @since   3.1.7
  *
  * @author woobewoo
@@ -223,11 +223,6 @@
 
 #mainContainer nav .active .menuItem {
 	background-color: var(--woobewoo-color-f4f5f5);
-}
-
-#containerWrapper .wpfFilterWrapper .wpfCheckbox label {
-	width: 100% !important;
-	display: flex !important;
 }
 
 .wpfRadio input[type="radio"] {

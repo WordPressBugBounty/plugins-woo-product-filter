@@ -2,7 +2,7 @@
 /**
  * Product Filter by WBW - WooBeWoo_PF_Woofilters_View Class
  *
- * @version 3.4.0
+ * @version 3.4.3
  *
  * @author woobewoo
  */
@@ -197,7 +197,7 @@ class WooBeWoo_PF_Woofilters_View extends WooBeWoo_PF_View {
 	/**
 	 * renderHtml.
 	 *
-	 * @version 3.4.0
+	 * @version 3.4.3
 	 */
 	public function renderHtml( $params ) {
 		$isWooCommercePluginActivated = $this->getModule()->isWooCommercePluginActivated();
@@ -235,7 +235,7 @@ class WooBeWoo_PF_Woofilters_View extends WooBeWoo_PF_View {
 		if ( '1' === WooBeWoo_PF_Req::getVar( 'wpf_skip' ) && ! $recalculateFilters ) {
 			$fid = WooBeWoo_PF_Req::getVar( 'wpf_fid' );
 			if ( $fid ) {
-				$this->assign( 'html', '<div class="wpfExistsTermsJS" data-fid="' . esc_attr( $fid ) . '"></div>' );
+				$this->assign( 'html', '<div class="wpfExistsTermsJS" data-fid="' . absint( $fid ) . '"></div>' );
 				return parent::getContent( 'woofiltersHtml' );
 			}
 			return false;
@@ -531,7 +531,7 @@ class WooBeWoo_PF_Woofilters_View extends WooBeWoo_PF_View {
 	/**
 	 * generateFiltersHtml.
 	 *
-	 * @version 3.4.0
+	 * @version 3.4.3
 	 */
 	public function generateFiltersHtml( $filterSettings, $viewId, $prodCatId = false, $noWooPage = false, $taxonomies = array() ) {
 		$this->setCurrentSettings( $filterSettings );
@@ -557,8 +557,12 @@ class WooBeWoo_PF_Woofilters_View extends WooBeWoo_PF_View {
 		$buttonsOrder           = ( ! empty( $filterSettings['settings']['main_buttons_order'] ) ) ? $filterSettings['settings']['main_buttons_order'] : 'left';
 		$showCleanButton        = ( ! empty( $filterSettings['settings']['show_clean_button'] ) ) ? $filterSettings['settings']['show_clean_button'] : false;
 		$showFilteringButton    = ( ! empty( $filterSettings['settings']['show_filtering_button'] ) ) ? $filterSettings['settings']['show_filtering_button'] : false;
-		$filterButtonWord       = ( ! empty( $filterSettings['settings']['filtering_button_word'] ) ) ? $filterSettings['settings']['filtering_button_word'] : esc_html__( 'Filter', 'woo-product-filter' );
-		$clearButtonWord        = ( $showCleanButton && ! empty( $filterSettings['settings']['show_clean_button_word'] ) ) ? $filterSettings['settings']['show_clean_button_word'] : 'Clear';
+		$filterButtonWord       = ( ! empty( $filterSettings['settings']['filtering_button_word'] ) ) ?
+			woobewoo_pf_translate_string( $filterSettings['settings']['filtering_button_word'] ) :
+			esc_html__( 'Filter', 'woo-product-filter' );
+		$clearButtonWord        = ( $showCleanButton && ! empty( $filterSettings['settings']['show_clean_button_word'] ) ) ?
+			woobewoo_pf_translate_string( $filterSettings['settings']['show_clean_button_word'] ) :
+			esc_html__( 'Clear', 'woo-product-filter' );
 		$enableAjax             = ( ! empty( $filterSettings['settings']['enable_ajax'] ) ) ? $filterSettings['settings']['enable_ajax'] : 0;
 		$forceShowCurrentFilter = ( isset( $filterSettings['settings']['force_show_current'] ) ) ? $filterSettings['settings']['force_show_current'] : 0;
 
@@ -831,7 +835,7 @@ class WooBeWoo_PF_Woofilters_View extends WooBeWoo_PF_View {
 		);
 		wp_add_inline_style(
 			'woobewoo-pf-frontend-filters',
-			$custom_css
+			wp_strip_all_tags( $custom_css )
 		);
 
 		$this->resetFilterExistsTerms();
