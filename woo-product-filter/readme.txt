@@ -4,7 +4,7 @@ Donate link: https://woobewoo.com/product/woocommerce-filter/
 Tags: product filter, WooCommerce product filter, shop filter, e-commerce filter, WooCommerce filter
 Requires at least: 5.0
 Tested up to: 7.1
-Stable tag: 3.4.6
+Stable tag: 3.4.7
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -165,6 +165,16 @@ This plugin may communicate with the following third-party services:
 * **Google Fonts** (https://fonts.googleapis.com) — Loaded only when a Google Font is explicitly selected in the plugin's design settings. No data is sent to Google; the request is a standard CSS font-stylesheet fetch. [Google Privacy Policy](https://policies.google.com/privacy).
 
 == Changelog ==
+
+= 3.4.7 - 20/10/2026 =
+* Fix - Security - Improved output escaping and AJAX response handling in the frontend filter request.
+* Fix - Security - Fixed an unauthenticated information disclosure vulnerability in the frontend product query.
+* Fix - Security - Fixed an SQL injection vulnerability in product filters.
+* Fix - Improved temporary table creation and SQL query handling.
+* Fix - Fixed filter parameters not being removed from the URL when clearing filters.
+* Fix - Fixed the default multi-select list spacing.
+* Dev - Added `JSON_HEX_TAG`, `JSON_HEX_AMP`, `JSON_HEX_APOS` and `JSON_HEX_QUOT` flags to `WooBeWoo_PF_Response::ajaxExec()`.
+* WC tested up to: 11.2.
 
 = 3.4.6 - 06/10/2026 =
 * Fix - Fixed PRO "Content" options (selected filters, category slugs in URL, synchronization, scroll, one filter open, view more) being reset on save.
