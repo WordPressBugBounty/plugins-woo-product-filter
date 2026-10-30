@@ -4,7 +4,7 @@ Donate link: https://woobewoo.com/product/woocommerce-filter/
 Tags: product filter, WooCommerce product filter, shop filter, e-commerce filter, WooCommerce filter
 Requires at least: 5.0
 Tested up to: 7.1
-Stable tag: 3.4.7
+Stable tag: 3.4.8
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -165,6 +165,9 @@ This plugin may communicate with the following third-party services:
 * **Google Fonts** (https://fonts.googleapis.com) — Loaded only when a Google Font is explicitly selected in the plugin's design settings. No data is sent to Google; the request is a standard CSS font-stylesheet fetch. [Google Privacy Policy](https://policies.google.com/privacy).
 
 == Changelog ==
+
+= 3.4.8 - 30/10/2026 =
+* Fix - Security - Moved AJAX nonce verification before request processing.
 
 = 3.4.7 - 20/10/2026 =
 * Fix - Security - Improved output escaping and AJAX response handling in the frontend filter request.
